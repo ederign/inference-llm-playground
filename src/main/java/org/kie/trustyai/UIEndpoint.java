@@ -20,7 +20,7 @@ public class UIEndpoint {
 
     @GET
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getUIData(@PathParam("modelName") String modelName) {
-        return modelForm.data("modelName", modelName);
+    public Response getUIData(@PathParam("modelName") String modelName) {
+        return Response.ok(modelForm.data("modelName", modelName).render()).build();
     }
-} 
+}

@@ -4,17 +4,29 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+import io.quarkus.qute.Location;
+import io.quarkus.qute.Template;
+import io.quarkus.qute.TemplateInstance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.inject.Default;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.math3.linear.ArrayRealVector;
@@ -28,6 +40,7 @@ import org.kie.trustyai.explainability.model.PredictionProvider;
 import org.kie.trustyai.explainability.model.SaliencyResults;
 import org.kie.trustyai.explainability.model.SimplePrediction;
 import org.kie.trustyai.payloads.SaliencyExplanationResponse;
+import jakarta.annotation.PostConstruct;
 
 @Path("/v1/models/{modelName}:explain")
 public class ExplainerV1Endpoint {
@@ -45,12 +58,24 @@ public class ExplainerV1Endpoint {
     @Inject
     StreamingGeneratorManager streamingGeneratorManager;
 
+    @Inject
+    @Location("model-form.html")
+    Template modelForm;
+
+    @PostConstruct
+    void init() {
+        Log.info("========================================");
+        Log.info("TrustyAI Explainer Endpoint Initialized");
+        Log.info("Version: v7.0.0-SNAPSHOT");
+        Log.info("========================================");
+    }
+
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Response explain(@PathParam("modelName") String modelName, KServeV1RequestPayload data)
             throws ExecutionException, InterruptedException {
 
-        System.out.println("EDER IS HERE BABY");
+        System.out.println("EDER IS HERE BABY!!!");
         Log.error("EDER IS HERE BABY");
         Log.info("Using fsdfsdds type [" + configService.getExplainerType() + "]");
         Log.info("Using V1 HTTP protocol");
@@ -66,7 +91,6 @@ public class ExplainerV1Endpoint {
 
         CompletableFuture<SaliencyResults> lime = null;
         CompletableFuture<SaliencyResults> shap = null;
-
 
         if (explainerType == ExplainerType.SHAP || explainerType == ExplainerType.ALL) {
             if (Objects.isNull(streamingGeneratorManager.getStreamingGenerator())) {
@@ -84,11 +108,10 @@ public class ExplainerV1Endpoint {
         }
 
         if (explainerType == ExplainerType.LIME || explainerType == ExplainerType.ALL) {
-                Log.info("Sending explaining request to " + predictorURI);
-                lime = explainerFactory.getExplainer(ExplainerType.LIME)
-                        .explainAsync(prediction, provider);
+            Log.info("Sending explaining request to " + predictorURI);
+            lime = explainerFactory.getExplainer(ExplainerType.LIME)
+                    .explainAsync(prediction, provider);
         }
-
 
         try {
             Log.info("Sending explaining request to " + predictorURI);
@@ -110,31 +133,53 @@ public class ExplainerV1Endpoint {
     }
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getExplanation(@PathParam("modelName") String modelName) {
-        // Create a stub JSON response
-        String stubResponse = """
-                {
-                    "modelName": "%s",
-                    "explanation": {
-                        "type": "sample",
-                        "features": [
-                            {
-                                "name": "feature1",
-                                "importance": 0.8,
-                                "value": 42
-                            },
-                            {
-                                "name": "feature2",
-                                "importance": 0.6,
-                                "value": 23
-                            }
-                        ],
-                        "timestamp": "%s"
-                    }
-                }
-                """.formatted(modelName, java.time.Instant.now());
+    @Produces({ MediaType.TEXT_HTML, MediaType.APPLICATION_JSON })
+    public Response getUIData(
+            @PathParam("modelName") String modelName,
+            @QueryParam("proxy") @DefaultValue("false") boolean isProxy,
+            @QueryParam("url") String targetUrl,
+            @QueryParam("body") String requestBody,
+            @HeaderParam("Host") String hostHeader,
+            @HeaderParam("Content-Type") String contentType) {
 
-        return Response.ok(stubResponse).build();
+        if (!isProxy) {
+            return Response.ok(modelForm.data("modelName", modelName).render()).build();
+        }
+
+        // Handle proxy request
+        try {
+            Log.info("Proxying request to: " + targetUrl);
+            Log.info("With host header: " + hostHeader);
+            Log.info("Request body: " + requestBody);
+
+            // Create a client that allows restricted headers
+            HttpClient client = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .connectTimeout(Duration.ofSeconds(20))
+                    .build();
+
+            // Create request without restricted headers
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(targetUrl))
+                    .header("Content-Type", contentType != null ? contentType : "application/json")
+                    // Remove the Host header - let HttpClient handle it
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody != null ? requestBody : ""))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            Log.info("Proxy response status: " + response.statusCode());
+            Log.info("Proxy response body: " + response.body());
+
+            return Response.status(response.statusCode())
+                    .entity(response.body())
+                    .build();
+        } catch (Exception e) {
+            Log.error("Proxy error: " + e.getMessage(), e);
+            return Response.serverError()
+                    .entity("Error: " + e.getMessage())
+                    .build();
+        }
     }
 }

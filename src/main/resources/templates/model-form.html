@@ -4,7 +4,7 @@
     <title>Model Input Form - ${modelName}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .form-container { max-width: 600px; margin: 0 auto; }
+        .form-container { max-width: 800px; margin: 0 auto; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; }
         input[type="text"], input[type="number"] {
@@ -23,7 +23,34 @@
             cursor: pointer;
         }
         button:hover { background-color: #45a049; }
-        #response { margin-top: 20px; white-space: pre-wrap; }
+        .response-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        .response-box {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .response-box h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        #requestData, #responseData {
+            width: 100%;
+            min-height: 200px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
     </style>
 </head>
 <body>
@@ -32,33 +59,47 @@
         <form id="modelForm">
             <div class="form-group">
                 <label for="endpointUrl">Model Endpoint URL:</label>
-                <input type="text" id="endpointUrl" name="endpointUrl" required>
+                <input type="text" id="endpointUrl" name="endpointUrl" value="http://sklearn-iris.default.example.com:8888/v1/models/sklearn-iris:predict" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="hostHeader">Host Header:</label>
+                <input type="text" id="hostHeader" name="hostHeader" value="sklearn-iris.default.example.com" required>
             </div>
             
             <div class="form-group">
                 <label for="sepalLength">Sepal Length:</label>
-                <input type="number" id="sepalLength" name="sepalLength" step="0.1" required>
+                <input type="number" id="sepalLength" name="sepalLength" step="0.1" value="5.1" required>
             </div>
             
             <div class="form-group">
                 <label for="sepalWidth">Sepal Width:</label>
-                <input type="number" id="sepalWidth" name="sepalWidth" step="0.1" required>
+                <input type="number" id="sepalWidth" name="sepalWidth" step="0.1" value="3.5" required>
             </div>
             
             <div class="form-group">
                 <label for="petalLength">Petal Length:</label>
-                <input type="number" id="petalLength" name="petalLength" step="0.1" required>
+                <input type="number" id="petalLength" name="petalLength" step="0.1" value="1.4" required>
             </div>
             
             <div class="form-group">
                 <label for="petalWidth">Petal Width:</label>
-                <input type="number" id="petalWidth" name="petalWidth" step="0.1" required>
+                <input type="number" id="petalWidth" name="petalWidth" step="0.1" value="0.2" required>
             </div>
             
             <button type="submit">Submit</button>
         </form>
         
-        <div id="response"></div>
+        <div class="response-container">
+            <div class="response-box">
+                <h3>Request Data</h3>
+                <div id="requestData"></div>
+            </div>
+            <div class="response-box">
+                <h3>Response Data</h3>
+                <div id="responseData"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -75,21 +116,31 @@
             };
             
             const endpointUrl = document.getElementById('endpointUrl').value;
+            const hostHeader = document.getElementById('hostHeader').value;
+            
+            // Display request data
+            document.getElementById('requestData').textContent = 
+                JSON.stringify(formData, null, 2);
             
             try {
-                const response = await fetch(endpointUrl, {
-                    method: 'POST',
+                // Build the URL using window.location
+                const baseUrl = window.location.pathname;
+                const proxyUrl = baseUrl + '?proxy=true&url=' + encodeURIComponent(endpointUrl) + 
+                               '&body=' + encodeURIComponent(JSON.stringify(formData));
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                        'Host': hostHeader,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 const result = await response.json();
-                document.getElementById('response').textContent = 
-                    'Response:\n' + JSON.stringify(result, null, 2);
+                document.getElementById('responseData').textContent = 
+                    JSON.stringify(result, null, 2);
             } catch (error) {
-                document.getElementById('response').textContent = 
+                document.getElementById('responseData').textContent = 
                     'Error:\n' + error.message;
             }
         });
