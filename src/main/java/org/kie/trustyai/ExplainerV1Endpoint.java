@@ -148,22 +148,21 @@ public class ExplainerV1Endpoint {
 
         if (isProxy) {
             try {
-                // Create test data
-                Log.info("Creating test data: " + requestBody);
-                List<List<Double>> instances = new ArrayList<>();
-                List<Double> instance = new ArrayList<>();
-                instance.add(6.8);
-                instance.add(2.8);
-                instance.add(4.8);
-                instance.add(1.4);
-                instances.add(instance);
+                // Parse the request body JSON
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, List<List<Double>>> requestMap = mapper.readValue(requestBody,
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, List<List<Double>>>>() {
+                        });
+
+                List<List<Double>> instances = requestMap.get("instances");
+                Log.info("Parsed instances from request: " + instances);
 
                 KServeV1RequestPayload data = new KServeV1RequestPayload(instances);
                 final String predictorURI = cmdArgs.getV1HTTPPredictorURI(modelName);
                 final PredictionProvider provider = new KServeV1HTTPPredictionProvider(null, null, predictorURI, 1);
 
                 // Make the prediction
-                Log.info("make the prediction");
+                Log.info("Making prediction with parsed instances");
                 final List<PredictionInput> input = data.toPredictionInputs();
                 final PredictionOutput output = provider.predictAsync(input).get().get(0);
                 Log.info("after the prediction");
@@ -183,10 +182,10 @@ public class ExplainerV1Endpoint {
 
                 Log.info("predictionData: " + predictionData);
 
-                ObjectMapper mapper = new ObjectMapper();
+                ObjectMapper anotherMapper = new ObjectMapper();
                 // Check if the client accepts JSON
                 if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON)) {
-                    String jsonResponse = mapper.writeValueAsString(predictionData);
+                    String jsonResponse = anotherMapper.writeValueAsString(predictionData);
                     Log.info("jsonoutput: " + jsonResponse);
                     return Response.ok(jsonResponse, MediaType.APPLICATION_JSON).build();
                 }
@@ -194,7 +193,7 @@ public class ExplainerV1Endpoint {
                 // Otherwise return HTML template
                 return Response.ok(
                         modelForm.data("modelName", modelName)
-                                .data("responseData", mapper.writeValueAsString(predictionData))
+                                .data("responseData", anotherMapper.writeValueAsString(predictionData))
                                 .render())
                         .build();
 
