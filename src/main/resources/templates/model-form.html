@@ -97,7 +97,9 @@
             </div>
             <div class="response-box">
                 <h3>Response Data</h3>
-                <div id="responseData"></div>
+                <div id="responseData">                   
+                  
+                </div>
             </div>
         </div>
     </div>
@@ -138,7 +140,7 @@
                 
                 const result = await response.json();
                 document.getElementById('responseData').textContent = 
-                    JSON.stringify(result, null, 2);
+                    JSON.stringify(result, null, 2);  // Format JSON with 2 space indentation
             } catch (error) {
                 document.getElementById('responseData').textContent = 
                     'Error:\n' + error.message;

@@ -9,6 +9,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
@@ -41,6 +44,7 @@ import org.kie.trustyai.explainability.model.SaliencyResults;
 import org.kie.trustyai.explainability.model.SimplePrediction;
 import org.kie.trustyai.payloads.SaliencyExplanationResponse;
 import jakarta.annotation.PostConstruct;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @Path("/v1/models/{modelName}:explain")
 public class ExplainerV1Endpoint {
@@ -140,46 +144,70 @@ public class ExplainerV1Endpoint {
             @QueryParam("url") String targetUrl,
             @QueryParam("body") String requestBody,
             @HeaderParam("Host") String hostHeader,
-            @HeaderParam("Content-Type") String contentType) {
+            @HeaderParam("Content-Type") String contentType) throws ExecutionException, InterruptedException {
 
-        if (!isProxy) {
-            return Response.ok(modelForm.data("modelName", modelName).render()).build();
+        if (isProxy) {
+            try {
+                // Create test data
+                Log.info("Creating test data: " + requestBody);
+                List<List<Double>> instances = new ArrayList<>();
+                List<Double> instance = new ArrayList<>();
+                instance.add(6.8);
+                instance.add(2.8);
+                instance.add(4.8);
+                instance.add(1.4);
+                instances.add(instance);
+
+                KServeV1RequestPayload data = new KServeV1RequestPayload(instances);
+                final String predictorURI = cmdArgs.getV1HTTPPredictorURI(modelName);
+                final PredictionProvider provider = new KServeV1HTTPPredictionProvider(null, null, predictorURI, 1);
+
+                // Make the prediction
+                Log.info("make the prediction");
+                final List<PredictionInput> input = data.toPredictionInputs();
+                final PredictionOutput output = provider.predictAsync(input).get().get(0);
+                Log.info("after the prediction");
+                // Format the prediction output as JSON
+                Map<String, Object> predictionData = new HashMap<>();
+                List<Map<String, Object>> outputs = new ArrayList<>();
+
+                for (var out : output.getOutputs()) {
+                    Map<String, Object> outputMap = new HashMap<>();
+                    outputMap.put("value", out.getValue().asNumber());
+                    outputMap.put("type", out.getType());
+                    outputMap.put("score", out.getScore());
+                    outputMap.put("name", out.getName());
+                    outputs.add(outputMap);
+                }
+                predictionData.put("predictions", outputs);
+
+                Log.info("predictionData: " + predictionData);
+
+                ObjectMapper mapper = new ObjectMapper();
+                // Check if the client accepts JSON
+                if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON)) {
+                    String jsonResponse = mapper.writeValueAsString(predictionData);
+                    Log.info("jsonoutput: " + jsonResponse);
+                    return Response.ok(jsonResponse, MediaType.APPLICATION_JSON).build();
+                }
+
+                // Otherwise return HTML template
+                return Response.ok(
+                        modelForm.data("modelName", modelName)
+                                .data("responseData", mapper.writeValueAsString(predictionData))
+                                .render())
+                        .build();
+
+            } catch (JsonProcessingException e) {
+                Log.error("JSON serialization error: " + e.getMessage(), e);
+                return Response.serverError().entity("Error serializing response").build();
+            }
+        } else {
+            return Response.ok(
+                    modelForm.data("modelName", modelName)
+                            .render())
+                    .build();
         }
 
-        // Handle proxy request
-        try {
-            Log.info("Proxying request to: " + targetUrl);
-            Log.info("With host header: " + hostHeader);
-            Log.info("Request body: " + requestBody);
-
-            // Create a client that allows restricted headers
-            HttpClient client = HttpClient.newBuilder()
-                    .version(HttpClient.Version.HTTP_1_1)
-                    .followRedirects(HttpClient.Redirect.NORMAL)
-                    .connectTimeout(Duration.ofSeconds(20))
-                    .build();
-
-            // Create request without restricted headers
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(targetUrl))
-                    .header("Content-Type", contentType != null ? contentType : "application/json")
-                    // Remove the Host header - let HttpClient handle it
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody != null ? requestBody : ""))
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            Log.info("Proxy response status: " + response.statusCode());
-            Log.info("Proxy response body: " + response.body());
-
-            return Response.status(response.statusCode())
-                    .entity(response.body())
-                    .build();
-        } catch (Exception e) {
-            Log.error("Proxy error: " + e.getMessage(), e);
-            return Response.serverError()
-                    .entity("Error: " + e.getMessage())
-                    .build();
-        }
     }
 }
