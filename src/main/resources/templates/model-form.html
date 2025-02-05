@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Model Input Form - ${modelName}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #45a049; }
+        #response { margin-top: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Model Input Form - ${modelName}</h2>
+        <form id="modelForm">
+            <div class="form-group">
+                <label for="endpointUrl">Model Endpoint URL:</label>
+                <input type="text" id="endpointUrl" name="endpointUrl" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="sepalLength">Sepal Length:</label>
+                <input type="number" id="sepalLength" name="sepalLength" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="sepalWidth">Sepal Width:</label>
+                <input type="number" id="sepalWidth" name="sepalWidth" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="petalLength">Petal Length:</label>
+                <input type="number" id="petalLength" name="petalLength" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="petalWidth">Petal Width:</label>
+                <input type="number" id="petalWidth" name="petalWidth" step="0.1" required>
+            </div>
+            
+            <button type="submit">Submit</button>
+        </form>
+        
+        <div id="response"></div>
+    </div>
+
+    <script>
+        document.getElementById('modelForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                instances: [[
+                    parseFloat(document.getElementById('sepalLength').value),
+                    parseFloat(document.getElementById('sepalWidth').value),
+                    parseFloat(document.getElementById('petalLength').value),
+                    parseFloat(document.getElementById('petalWidth').value)
+                ]]
+            };
+            
+            const endpointUrl = document.getElementById('endpointUrl').value;
+            
+            try {
+                const response = await fetch(endpointUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                document.getElementById('response').textContent = 
+                    'Response:\n' + JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 
+                    'Error:\n' + error.message;
+            }
+        });
+    </script>
+</body>
+</html> 
