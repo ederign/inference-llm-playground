@@ -11,9 +11,10 @@ public class CORSFilter implements ContainerResponseFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
-        Log.info("Handling CORS for request: " + requestContext.getUriInfo().getRequestUri());
-        Log.info("Request method: " + requestContext.getMethod());
-        Log.info("Request headers: " + requestContext.getHeaders());
+        // Log.info("Handling CORS for request: " +
+        // requestContext.getUriInfo().getRequestUri());
+        // Log.info("Request method: " + requestContext.getMethod());
+        // Log.info("Request headers: " + requestContext.getHeaders());
 
         responseContext.getHeaders().add("Access-Control-Allow-Origin", "*");
         responseContext.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -22,6 +23,6 @@ public class CORSFilter implements ContainerResponseFilter {
         responseContext.getHeaders().add("Access-Control-Allow-Credentials", "true");
         responseContext.getHeaders().add("Access-Control-Max-Age", "1209600");
 
-        Log.info("Response headers: " + responseContext.getHeaders());
+        // Log.info("Response headers: " + responseContext.getHeaders());
     }
 }

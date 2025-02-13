@@ -79,8 +79,6 @@ public class ExplainerV1Endpoint {
     public Response explain(@PathParam("modelName") String modelName, KServeV1RequestPayload data)
             throws ExecutionException, InterruptedException {
 
-        System.out.println("EDER IS HERE BABY!!!");
-        Log.error("EDER IS HERE BABY");
         Log.info("Using fsdfsdds type [" + configService.getExplainerType() + "]");
         Log.info("Using V1 HTTP protocol");
         final String predictorURI = cmdArgs.getV1HTTPPredictorURI(modelName);
@@ -141,6 +139,7 @@ public class ExplainerV1Endpoint {
     public Response getUIData(
             @PathParam("modelName") String modelName,
             @QueryParam("proxy") @DefaultValue("false") boolean isProxy,
+            @QueryParam("message") String userMessage,
             @QueryParam("url") String targetUrl,
             @QueryParam("body") String requestBody,
             @HeaderParam("Host") String hostHeader,
@@ -148,39 +147,21 @@ public class ExplainerV1Endpoint {
 
         if (isProxy) {
             try {
-                // Parse the request body JSON
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, List<List<Double>>> requestMap = mapper.readValue(requestBody,
-                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, List<List<Double>>>>() {
-                        });
-
-                List<List<Double>> instances = requestMap.get("instances");
-                Log.info("Parsed instances from request: " + instances);
-
-                KServeV1RequestPayload data = new KServeV1RequestPayload(instances);
-                final String predictorURI = cmdArgs.getV1HTTPPredictorURI(modelName);
-                final PredictionProvider provider = new KServeV1HTTPPredictionProvider(null, null, predictorURI, 1);
-
-                // Make the prediction
-                Log.info("Making prediction with parsed instances");
-                final List<PredictionInput> input = data.toPredictionInputs();
-                final PredictionOutput output = provider.predictAsync(input).get().get(0);
-                Log.info("after the prediction");
-                // Format the prediction output as JSON
+                // Create a proper response object
                 Map<String, Object> predictionData = new HashMap<>();
-                List<Map<String, Object>> outputs = new ArrayList<>();
 
-                for (var out : output.getOutputs()) {
-                    Map<String, Object> outputMap = new HashMap<>();
-                    outputMap.put("value", out.getValue().asNumber());
-                    outputMap.put("type", out.getType());
-                    outputMap.put("score", out.getScore());
-                    outputMap.put("name", out.getName());
-                    outputs.add(outputMap);
+                // If there's a user message, include it in the response
+                if (userMessage != null && !userMessage.isEmpty()) {
+                    predictionData.put("message", "You said: '" + userMessage
+                            + "'\n\nI am an AI assistant. I can help you with explanations about model predictions.");
+                } else {
+                    predictionData.put("message",
+                            "I am an AI assistant. I can help you with explanations about model predictions.");
                 }
-                predictionData.put("predictions", outputs);
 
-                Log.info("predictionData: " + predictionData);
+                predictionData.put("timestamp", System.currentTimeMillis());
+                predictionData.put("modelName", modelName);
+                predictionData.put("userMessage", userMessage);
 
                 ObjectMapper anotherMapper = new ObjectMapper();
                 // Check if the client accepts JSON
@@ -193,7 +174,6 @@ public class ExplainerV1Endpoint {
                 // Otherwise return HTML template
                 return Response.ok(
                         modelForm.data("modelName", modelName)
-                                .data("responseData", anotherMapper.writeValueAsString(predictionData))
                                 .render())
                         .build();
 
@@ -207,6 +187,5 @@ public class ExplainerV1Endpoint {
                             .render())
                     .build();
         }
-
     }
 }

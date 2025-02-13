@@ -1,0 +1,132 @@
+Name:         gpt2
+Namespace:    eder-llm
+Labels:       opendatahub.io/dashboard=true
+Annotations:  openshift.io/display-name: gpt2
+              serving.knative.openshift.io/enablePassthrough: true
+              sidecar.istio.io/inject: true
+              sidecar.istio.io/rewriteAppHTTPProbers: true
+API Version:  serving.kserve.io/v1beta1
+Kind:         InferenceService
+Metadata:
+  Creation Timestamp:  2025-02-12T22:47:16Z
+  Finalizers:
+    inferenceservice.finalizers
+  Generation:        4
+  Resource Version:  956474141
+  UID:               3489f15f-097a-4d39-bba1-edd8c5df0076
+Spec:
+  Explainer:
+    Containers:
+      Image:              quay.io/ederignatowicz/trustyai-kserve:v18
+      Image Pull Policy:  Always
+      Name:               kserve-container
+      Resources:
+        Limits:
+          Cpu:     1
+          Memory:  2Gi
+        Requests:
+          Cpu:     1
+          Memory:  2Gi
+  Predictor:
+    Max Replicas:  1
+    Min Replicas:  1
+    Model:
+      Model Format:
+        Name:  vLLM
+      Name:    
+      Resources:
+        Limits:
+          Cpu:             6
+          Memory:          16Gi
+          nvidia.com/gpu:  1
+        Requests:
+          Cpu:             4
+          Memory:          8Gi
+          nvidia.com/gpu:  1
+      Runtime:             gpt2
+      Storage:
+        Key:   aws-connection-my-storage
+        Path:  gpt2/
+    Tolerations:
+      Effect:  NoSchedule
+      Key:     nvidia.com/gpu
+      Value:   Tesla-T4-SHARED
+Status:
+  Address:
+    URL:  https://gpt2.eder-llm.svc.cluster.local
+  Components:
+    Explainer:
+      Address:
+        URL:                        http://gpt2-explainer.eder-llm.svc.cluster.local
+      Latest Created Revision:      gpt2-explainer-00003
+      Latest Ready Revision:        gpt2-explainer-00003
+      Latest Rolledout Revision:    gpt2-explainer-00003
+      Previous Rolledout Revision:  gpt2-explainer-00002
+      Traffic:
+        Latest Revision:  true
+        Percent:          100
+        Revision Name:    gpt2-explainer-00003
+      URL:                https://gpt2-explainer-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com
+    Predictor:
+      Address:
+        URL:                      http://gpt2-predictor.eder-llm.svc.cluster.local
+      Latest Created Revision:    gpt2-predictor-00001
+      Latest Ready Revision:      gpt2-predictor-00001
+      Latest Rolledout Revision:  gpt2-predictor-00001
+      Traffic:
+        Latest Revision:  true
+        Percent:          100
+        Revision Name:    gpt2-predictor-00001
+      URL:                https://gpt2-predictor-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com
+  Conditions:
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Severity:              Info
+    Status:                True
+    Type:                  ExplainerConfigurationReady
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Severity:              Info
+    Status:                True
+    Type:                  ExplainerReady
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Severity:              Info
+    Status:                True
+    Type:                  ExplainerRoutesReady
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Status:                True
+    Type:                  IngressReady
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Severity:              Info
+    Status:                True
+    Type:                  LatestDeploymentReady
+    Last Transition Time:  2025-02-12T22:49:17Z
+    Severity:              Info
+    Status:                True
+    Type:                  PredictorConfigurationReady
+    Last Transition Time:  2025-02-12T22:49:18Z
+    Status:                True
+    Type:                  PredictorReady
+    Last Transition Time:  2025-02-12T22:49:18Z
+    Severity:              Info
+    Status:                True
+    Type:                  PredictorRouteReady
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Status:                True
+    Type:                  Ready
+    Last Transition Time:  2025-02-13T14:59:17Z
+    Severity:              Info
+    Status:                True
+    Type:                  RoutesReady
+  Model Status:
+    Copies:
+      Failed Copies:  0
+      Total Copies:   1
+    States:
+      Active Model State:  Loaded
+      Target Model State:  Loaded
+    Transition Status:     UpToDate
+  Observed Generation:     3
+  URL:                     https://gpt2-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com
+Events:
+  Type    Reason                 Age                From                Message
+  ----    ------                 ----               ----                -------
+  Normal  InferenceServiceReady  15m (x3 over 16h)  v1beta1Controllers  InferenceService [gpt2] is Ready
