@@ -100,6 +100,13 @@
             border-radius: 4px;
             margin-top: 8px;
         }
+
+        textarea.pf-v6-c-form-control {
+            resize: vertical;
+            min-height: 60px;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -113,6 +120,15 @@
                     <div class="pf-v6-c-card__body">
                         <div class="chat-messages" id="chatMessages">
                             <!-- Messages will be inserted here -->
+                        </div>
+                        
+                        <div class="input-container">
+                            <textarea 
+                                class="pf-v6-c-form-control" 
+                                id="urlInput" 
+                                placeholder="Enter API URL here..."
+                                rows="2"
+                                aria-label="API URL input"></textarea>
                         </div>
                         
                         <div class="input-container">
@@ -138,8 +154,12 @@
             constructor() {
                 this.messagesContainer = document.getElementById('chatMessages');
                 this.userInput = document.getElementById('userInput');
+                this.urlInput = document.getElementById('urlInput');
                 this.sendButton = document.getElementById('sendButton');
 
+                // Set default URL
+                this.urlInput.value = 'https://gpt2-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com/v1/completions';
+                
                 this.setupEventListeners();
                 this.addBotMessage('Hello! I am Bella and Dora assistant. How can I help you today?');
             }
@@ -158,10 +178,11 @@
                 if (message) {
                     this.addUserMessage(message);
                     
-                    // Send message to server with message as query parameter
+                    // Get URL from textarea instead of window.location
                     const url = new URL(window.location.href);
                     url.searchParams.set('proxy', 'true');
                     url.searchParams.set('message', message);
+                    url.searchParams.set('url', this.urlInput.value.trim());
                     
                     fetch(url.toString(), {
                         method: 'GET',

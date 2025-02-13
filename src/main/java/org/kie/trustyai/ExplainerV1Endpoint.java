@@ -145,41 +145,80 @@ public class ExplainerV1Endpoint {
             @HeaderParam("Host") String hostHeader,
             @HeaderParam("Content-Type") String contentType) throws ExecutionException, InterruptedException {
 
+        Log.info("isProxy: " + isProxy);
+        Log.info("userMessage: " + userMessage);
+        Log.info("targetUrl: " + targetUrl);
+        Log.info("requestBody: " + requestBody);
+        Log.info("hostHeader: " + hostHeader);
+        Log.info("contentType: " + contentType);
+
         if (isProxy) {
             try {
-                // Create a proper response object
-                Map<String, Object> predictionData = new HashMap<>();
+                // Create HTTP client
+                HttpClient client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(30))
+                        .build();
 
-                // If there's a user message, include it in the response
-                if (userMessage != null && !userMessage.isEmpty()) {
-                    predictionData.put("message", "You said: '" + userMessage
-                            + "'\n\nI am an AI assistant. I can help you with explanations about model predictions.");
-                } else {
-                    predictionData.put("message",
-                            "I am an AI assistant. I can help you with explanations about model predictions.");
+                // Prepare request body
+                Map<String, Object> requestMap = new HashMap<>();
+                requestMap.put("model", "gpt2");
+                requestMap.put("prompt", userMessage != null ? userMessage : "anything");
+                requestMap.put("max_tokens", 50);
+
+                ObjectMapper mapper = new ObjectMapper();
+                String requestJson = mapper.writeValueAsString(requestMap);
+
+                // Log the request
+                Log.info("Request JSON: " + requestJson);
+
+                // String url =
+                // "https://gpt2-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com/v1/completions";
+                // Create HTTP request
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(targetUrl))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(requestJson))
+                        .build();
+
+                // Send request and get response
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                // Log the raw response
+                Log.info("Response Status: " + response.statusCode());
+                Log.info("Raw Response: " + response.body());
+
+                // Parse response to get the text from choices
+                Map<String, Object> responseMap = mapper.readValue(response.body(), Map.class);
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseMap.get("choices");
+
+                if (choices == null || choices.isEmpty()) {
+                    Log.error("No choices found in response");
+                    return Response.serverError().entity("No response from model").build();
                 }
 
-                predictionData.put("timestamp", System.currentTimeMillis());
-                predictionData.put("modelName", modelName);
-                predictionData.put("userMessage", userMessage);
+                String aiResponse = (String) choices.get(0).get("text");
+                Log.info("AI Response Text: " + aiResponse);
 
-                ObjectMapper anotherMapper = new ObjectMapper();
-                // Check if the client accepts JSON
+                // Create response object
+                Map<String, Object> predictionData = new HashMap<>();
+                predictionData.put("userMessage", userMessage);
+                predictionData.put("message", aiResponse);
+
+                // Return JSON or HTML based on content type
                 if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON)) {
-                    String jsonResponse = anotherMapper.writeValueAsString(predictionData);
-                    Log.info("jsonoutput: " + jsonResponse);
+                    String jsonResponse = mapper.writeValueAsString(predictionData);
                     return Response.ok(jsonResponse, MediaType.APPLICATION_JSON).build();
                 }
 
-                // Otherwise return HTML template
                 return Response.ok(
                         modelForm.data("modelName", modelName)
                                 .render())
                         .build();
 
-            } catch (JsonProcessingException e) {
-                Log.error("JSON serialization error: " + e.getMessage(), e);
-                return Response.serverError().entity("Error serializing response").build();
+            } catch (Exception e) {
+                Log.error("Error processing request: " + e.getMessage(), e);
+                Log.error("Stack trace:", e);
+                return Response.serverError().entity("Error processing request: " + e.getMessage()).build();
             }
         } else {
             return Response.ok(
