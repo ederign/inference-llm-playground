@@ -10,8 +10,8 @@ public class StartupLogger {
 
     void onStart(@Observes StartupEvent ev) {
         Log.info("========================================");
-        Log.info("TrustyAI Service Starting...");
-        Log.info("Version: 0.7-SNAPSHOT");
+        Log.info("Infernce LLM chatbot starting...");
+        Log.info("Version: 0.25");
         Log.info("========================================");
     }
 }

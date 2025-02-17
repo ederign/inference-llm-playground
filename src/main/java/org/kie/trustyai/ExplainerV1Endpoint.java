@@ -159,11 +159,17 @@ public class ExplainerV1Endpoint {
                         .connectTimeout(Duration.ofSeconds(30))
                         .build();
 
-                // Prepare request body
+                // Prepare request body for chat completion
                 Map<String, Object> requestMap = new HashMap<>();
-                requestMap.put("model", "gpt2");
-                requestMap.put("prompt", userMessage != null ? userMessage : "anything");
-                requestMap.put("max_tokens", 50);
+                requestMap.put("model", "granite-5");
+
+                // Create the messages array with a single user message
+                List<Map<String, String>> messages = new ArrayList<>();
+                Map<String, String> userMessageMap = new HashMap<>();
+                userMessageMap.put("role", "user");
+                userMessageMap.put("content", userMessage != null ? userMessage : "Hello");
+                messages.add(userMessageMap);
+                requestMap.put("messages", messages);
 
                 ObjectMapper mapper = new ObjectMapper();
                 String requestJson = mapper.writeValueAsString(requestMap);
@@ -187,7 +193,7 @@ public class ExplainerV1Endpoint {
                 Log.info("Response Status: " + response.statusCode());
                 Log.info("Raw Response: " + response.body());
 
-                // Parse response to get the text from choices
+                // Parse response to get the content from the assistant's message
                 Map<String, Object> responseMap = mapper.readValue(response.body(), Map.class);
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) responseMap.get("choices");
 
@@ -196,13 +202,15 @@ public class ExplainerV1Endpoint {
                     return Response.serverError().entity("No response from model").build();
                 }
 
-                String aiResponse = (String) choices.get(0).get("text");
+                // Extract the message content from the first choice
+                Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                String aiResponse = message != null ? (String) message.get("content") : "";
                 Log.info("AI Response Text: " + aiResponse);
 
                 // Create response object
                 Map<String, Object> predictionData = new HashMap<>();
-                predictionData.put("userMessage", userMessage);
                 predictionData.put("message", aiResponse);
+                // predictionData.put("userMessage", userMessage);
 
                 // Return JSON or HTML based on content type
                 if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON)) {

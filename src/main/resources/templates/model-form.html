@@ -158,10 +158,10 @@
                 this.sendButton = document.getElementById('sendButton');
 
                 // Set default URL
-                this.urlInput.value = 'https://gpt2-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com/v1/completions';
+                this.urlInput.value = 'https://granite-5-eder-llm.apps.prod.rhoai.rh-aiservices-bu.com/v1/chat/completions';
                 
                 this.setupEventListeners();
-                this.addBotMessage('Hello! I am Bella and Dora assistant. How can I help you today?');
+                this.addBotMessage('Hello! I am Dora assistant. How can I help you today?');
             }
 
             setupEventListeners() {
@@ -220,16 +220,9 @@
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message bot';
                 
-                let content = text;
-                if (jsonResponse) {
-                    content += '<div class="json-response">' + 
-                              JSON.stringify(jsonResponse, null, 2) +
-                              '</div>';
-                }
-
                 messageDiv.innerHTML = 
                     '<div class="message-avatar">AI</div>' +
-                    '<div class="message-content">' + content + '</div>';
+                    '<div class="message-content">' + text + '</div>';
                 this.messagesContainer.appendChild(messageDiv);
                 this.scrollToBottom();
             }
