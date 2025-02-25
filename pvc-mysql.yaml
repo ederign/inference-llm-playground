@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: odh-model-registries
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: odh-model-registries
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: registry.redhat.io/rhel8/mysql-80@sha256:012a50706c4110b855ed687fdae67eb9ab5a31cc9e33a332576580094058eb7e
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "mrpassword"
+        - name: MYSQL_DATABASE
+          value: "modelregistry"
+        - name: MYSQL_USER
+          value: "modeluser"
+        - name: MYSQL_PASSWORD
+          value: "mrpassword"
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: odh-model-registries
+spec:
+  selector:
+    app: mysql
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306

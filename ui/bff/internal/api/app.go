@@ -1,10 +1,13 @@
 package api
 
 import (
-	"github.com/ederign/inference-llm-playground/internal/config"
-	"github.com/julienschmidt/httprouter"
 	"log/slog"
 	"net/http"
+	"path"
+
+	"github.com/ederign/inference-llm-playground/internal/config"
+	helper "github.com/ederign/inference-llm-playground/internal/helpers"
+	"github.com/julienschmidt/httprouter"
 )
 
 const (
@@ -50,23 +53,23 @@ func (app *App) Routes() http.Handler {
 	// handler for api calls
 	appMux.Handle("/v1/", apiRouter)
 
-	// file server for the frontend file and SPA routes
-	//staticDir := http.Dir(app.config.StaticAssetsDir)
-	//fileServer := http.FileServer(staticDir)
-	//appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	//	ctxLogger := helper.GetContextLoggerFromReq(r)
-	//	// Check if the requested file exists
-	//	if _, err := staticDir.Open(r.URL.Path); err == nil {
-	//		ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
-	//		// Serve the file if it exists
-	//		fileServer.ServeHTTP(w, r)
-	//		return
-	//	}
-	//
-	//	// Fallback to index.html for SPA routes
-	//	ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
-	//	http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
-	//})
+	//file server for the frontend file and SPA routes
+	staticDir := http.Dir(app.config.StaticAssetsDir)
+	fileServer := http.FileServer(staticDir)
+	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ctxLogger := helper.GetContextLoggerFromReq(r)
+		// Check if the requested file exists
+		if _, err := staticDir.Open(r.URL.Path); err == nil {
+			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
+			// Serve the file if it exists
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Fallback to index.html for SPA routes
+		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
+	})
 
 	return app.RecoverPanic(app.EnableCORS(appMux))
 }

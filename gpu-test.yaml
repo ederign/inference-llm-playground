@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-test
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - name: tensorflow
+    image: nvcr.io/nvidia/tensorflow:23.12-tf2-py3
+    command: ["sleep", "infinity"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
