@@ -70,24 +70,25 @@ export default MessageLoading;
 
 ~~~
 `;
-const date = new Date();
+const date = new Date(); 
 const initialMessages = [{
-  id: '1',
-  role: 'user',
-  content: 'Hello, can you give me an example of what you can do?',
-  name: 'User',
-  avatar: userAvatar,
-  timestamp: date.toLocaleString(),
-  avatarProps: {
-    isBordered: true
+    id: '1',
+    role: 'bot',
+    content: 'Hello RHOAI user, I can assist you in testing your fine-tuned model; do you want to give it a try?',
+    name: 'Bot',
+    avatar: patternflyAvatar,
+    timestamp: date.toLocaleString(),
+    avatarProps: {
+      isBordered: true
+    }
   }
-}];
+];
 const welcomePrompts = [{
-//   title: 'Topic 1',
-//   message: 'Helpful prompt for Topic 1'
-// }, {
-//   title: 'Topic 2',
-//   message: 'Helpful prompt for Topic 2'
+    title: 'Topic 1',
+    message: 'Helpful prompt for Test your Model'
+  }, {
+    title: 'Topic 2',
+    message: 'Helpful prompt for Test your Model'
 }];
 const initialConversations = {
   Today: [{
@@ -132,6 +133,11 @@ const initialConversations = {
     text: 'Manage user accounts'
   }]
 };
+const customStyles = `
+  .pf-chatbot__footer-container {
+    width: 100% !important;
+  }
+`;
 export const EmbeddedChatbot = () => {
   const [messages, setMessages] = React.useState(initialMessages);
   const [selectedModel, setSelectedModel] = React.useState('Granite 7B');
@@ -143,6 +149,16 @@ export const EmbeddedChatbot = () => {
   const scrollToBottomRef = React.useRef(null);
   const historyRef = React.useRef(null);
   const displayMode = ChatbotDisplayMode.embedded;
+  
+  // Add custom styles for the chatbot container
+  const chatbotContainerStyle = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden'
+  };
+  
   React.useEffect(() => {
     if (messages.length > 2) {
       scrollToBottomRef.current?.scrollIntoView({
@@ -173,8 +189,10 @@ export const EmbeddedChatbot = () => {
         isBordered: true
       }
     });
+    
+    const botMessageId = generateId();
     newMessages.push({
-      id: generateId(),
+      id: botMessageId,
       role: 'bot',
       content: 'API response goes here',
       name: 'Bot',
@@ -182,42 +200,103 @@ export const EmbeddedChatbot = () => {
       isLoading: true,
       timestamp: date.toLocaleString()
     });
+    
     setMessages(newMessages);
     setAnnouncement(`Message from User: ${message}. Message from Bot is loading.`);
-    setTimeout(() => {
-      const loadedMessages = [];
-      newMessages.forEach(message => loadedMessages.push(message));
-      loadedMessages.pop();
-      loadedMessages.push({
-        id: generateId(),
-        role: 'bot',
-        content: 'API response goes here',
-        name: 'Bot',
-        avatar: patternflyAvatar,
-        isLoading: false,
-        actions: {
-          positive: {
-            onClick: () => console.log('Good response')
-          },
-          negative: {
-            onClick: () => console.log('Bad response')
-          },
-          copy: {
-            onClick: () => console.log('Copy')
-          },
-          share: {
-            onClick: () => console.log('Share')
-          },
-          listen: {
-            onClick: () => console.log('Listen')
-          }
-        },
-        timestamp: date.toLocaleString()
+    
+    // Construct the API endpoint using routeLink
+    const apiEndpoint = 'https://granite-31-1b-a400m-instruct-inference-llm.apps.rosa.ui-chat-gpu.py3o.p3.openshiftapps.com/v1/chat/completions';
+
+    // Extract model ID from modelName or use a default
+    const modelId = 'granite-31-1b-a400m-instruct';
+
+    console.log('apiEndpoint', apiEndpoint);
+    console.log('modelId', modelId);
+
+    // Prepare the request payload
+    const payload = {
+      model: modelId,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: message },
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    };
+
+    // Make the API call
+    fetch(apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Update the bot message with the API response
+        const loadedMessages = [...newMessages];
+        const botMessageIndex = loadedMessages.findIndex((msg) => msg.id === botMessageId);
+
+        if (botMessageIndex !== -1) {
+          loadedMessages[botMessageIndex] = {
+            id: botMessageId,
+            role: 'bot',
+            content: data.choices[0].message.content,
+            name: 'Bot',
+            isLoading: false,
+            avatar: patternflyAvatar,
+            timestamp: date.toLocaleString(),
+            actions: {
+              positive: { onClick: () => console.log('Good response') },
+              negative: { onClick: () => console.log('Bad response') },
+              copy: { onClick: () => console.log('Copy') },
+              share: { onClick: () => console.log('Share') },
+              listen: { onClick: () => console.log('Listen') },
+            },
+          };
+        }
+
+        setMessages(loadedMessages);
+        // make announcement to assistive devices that new message has loaded
+        setAnnouncement(`Message from Bot: ${data.choices[0].message.content}`);
+        setIsSendButtonDisabled(false);
+      })
+      .catch((error) => {
+        console.error('Error calling API:', error);
+
+        // Update the bot message with an error message
+        const loadedMessages = [...newMessages];
+        const botMessageIndex = loadedMessages.findIndex((msg) => msg.id === botMessageId);
+
+        if (botMessageIndex !== -1) {
+          loadedMessages[botMessageIndex] = {
+            id: botMessageId,
+            role: 'bot',
+            content: `Sorry, I encountered an error: ${error.message}. Please try again later.`,
+            name: 'Bot',
+            isLoading: false,
+            avatar: patternflyAvatar,
+            timestamp: date.toLocaleString(),
+            actions: {
+              positive: { onClick: () => console.log('Good response') },
+              negative: { onClick: () => console.log('Bad response') },
+              copy: { onClick: () => console.log('Copy') },
+              share: { onClick: () => console.log('Share') },
+              listen: { onClick: () => console.log('Listen') },
+            },
+          };
+        }
+
+        setMessages(loadedMessages);
+        setAnnouncement(`Error from Bot: ${error.message}`);
+        setIsSendButtonDisabled(false);
       });
-      setMessages(loadedMessages);
-      setAnnouncement(`Message from Bot: API response goes here`);
-      setIsSendButtonDisabled(false);
-    }, 5000);
   };
   const findMatchingItems = targetValue => {
     let filteredConversations = Object.entries(initialConversations).reduce((acc, [key, items]) => {
@@ -262,8 +341,9 @@ export const EmbeddedChatbot = () => {
   const skipToContent = <SkipToContent href="#" onClick={skipToChatbot}>
       Skip to chatbot
     </SkipToContent>;
-  return <Page skipToContent={skipToContent} masthead={masthead} sidebar={sidebar} isContentFilled>
-      <Chatbot displayMode={displayMode}>
+  return (<>
+  <style>{customStyles}</style>
+  <Chatbot displayMode={displayMode}>
         <ChatbotConversationHistoryNav displayMode={displayMode} onDrawerToggle={() => {
     setIsDrawerOpen(!isDrawerOpen);
     setConversations(initialConversations);
@@ -277,50 +357,50 @@ export const EmbeddedChatbot = () => {
     }
     const newConversations = findMatchingItems(value);
     setConversations(newConversations);
-  }} drawerContent={
-    <>
-      <ChatbotHeader>
-        <ChatbotHeaderMain>
-          <ChatbotHeaderMenu ref={historyRef} aria-expanded={isDrawerOpen} onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)} />
-        
-        </ChatbotHeaderMain>
-        <ChatbotHeaderActions>
-          <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
-            <DropdownList>
-              <DropdownItem value="Granite 7B" key="granite">
-                Granite 7B
-              </DropdownItem>
-              <DropdownItem value="Llama 3.0" key="llama">
-                Llama 3.0
-              </DropdownItem>
-              <DropdownItem value="Mistral 3B" key="mistral">
-                Mistral 3B
-              </DropdownItem>
-            </DropdownList>
-          </ChatbotHeaderSelectorDropdown>
-        </ChatbotHeaderActions>
-      </ChatbotHeader>
-      <ChatbotContent>
-        <MessageBox announcement={announcement}>
-          <ChatbotWelcomePrompt title="Hello, Chatbot User" description="How may I help you today?" prompts={welcomePrompts} />
-          {messages.map((message, index) => {
-            if (index === messages.length - 1) {
-              return <React.Fragment key={message.id}>
-                <div ref={scrollToBottomRef}></div>
-                <Message {...message} />
-              </React.Fragment>;
-            }
-            return <Message key={message.id} {...message} />;
-          })}
-        </MessageBox>
-      </ChatbotContent>
-      <ChatbotFooter>
-        <MessageBar onSendMessage={handleSend} hasMicrophoneButton isSendButtonDisabled={isSendButtonDisabled} />
-        {/* <ChatbotFootnote {...footnoteProps} /> */}
-      </ChatbotFooter>
-    </>
-  }></ChatbotConversationHistoryNav>
+  }} drawerContent={<>
+              <ChatbotHeader>
+                <ChatbotHeaderMain>
+                  <ChatbotHeaderMenu ref={historyRef} aria-expanded={isDrawerOpen} onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)} />
+                  
+                </ChatbotHeaderMain>
+                <ChatbotHeaderActions>
+                  <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
+                    <DropdownList>
+                      <DropdownItem value="Granite 7B" key="granite">
+                        Granite 7B
+                      </DropdownItem>
+                      <DropdownItem value="Llama 3.0" key="llama">
+                        Llama 3.0
+                      </DropdownItem>
+                      <DropdownItem value="Mistral 3B" key="mistral">
+                        Mistral 3B
+                      </DropdownItem>
+                    </DropdownList>
+                  </ChatbotHeaderSelectorDropdown>
+                </ChatbotHeaderActions>
+              </ChatbotHeader>
+              <ChatbotContent>
+                
+                <MessageBox announcement={announcement}>
+                  <ChatbotWelcomePrompt title="Hello, Chatbot User" description="How may I help you today?" prompts={welcomePrompts} />
+                 
+                  {messages.map((message, index) => {
+    if (index === messages.length - 1) {
+      return <>
+                          <div ref={scrollToBottomRef}></div>
+                          <Message key={message.id} {...message} />
+                        </>;
+    }
+    return <Message key={message.id} {...message} />;
+  })}
+                </MessageBox>
+              </ChatbotContent>
+              <ChatbotFooter>
+                <MessageBar  onSendMessage={handleSend} hasMicrophoneButton isSendButtonDisabled={isSendButtonDisabled} />
+                <ChatbotFootnote {...footnoteProps} />
+              </ChatbotFooter>
+            </>}></ChatbotConversationHistoryNav>
       </Chatbot>
-    </Page>;
+  </>)
 };
 export default EmbeddedChatbot;

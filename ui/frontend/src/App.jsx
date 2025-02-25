@@ -87,8 +87,8 @@ function App() {
       <PageSection variant={PageSectionVariants.light}>
         <Flex>
           <FlexItem>
-            <Title headingLevel="h1" size="2xl">System Dashboard</Title>
-            <Title headingLevel="h1" size="xl">  Overview of your system's performance and resources </Title>
+            <Title headingLevel="h1" size="2xl">Granite-31-1b-a400m-instruct Dashboard</Title>
+            <Title headingLevel="h1" size="xl">Overview of your models's performance and resources </Title>
           </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
             <Flex>
@@ -174,16 +174,6 @@ function App() {
             </Card>
           </GridItem>
           
-          {/* Chatbot Row - Replacing Weekly Performance */}
-          <GridItem span={12}>
-            <Card className="chatbot-container">
-              <CardTitle>System Assistant</CardTitle>
-              <CardBody>
-                <EmbeddedChatbot />
-              </CardBody>
-            </Card>
-          </GridItem>
-          
          
           
           {/* Resource Utilization Row */}
@@ -220,6 +210,15 @@ function App() {
                     />
                   </GridItem>
                 </Grid>
+              </CardBody>
+            </Card>
+          </GridItem>
+
+          <GridItem span={12}>
+            <Card className="chatbot-container">
+              <CardTitle>System Assistant</CardTitle>
+              <CardBody>
+                <EmbeddedChatbot />
               </CardBody>
             </Card>
           </GridItem>
