@@ -24,11 +24,8 @@ import {
   NavItem
 } from '@patternfly/react-core';
 import {
-  ChartBar,
   ChartDonut,
-  ChartThemeColor,
-  ChartGroup,
-  ChartLine
+  ChartThemeColor
 } from '@patternfly/react-charts';
 import {
   CubesIcon,
@@ -40,6 +37,7 @@ import {
   MonitoringIcon,
   ServerGroupIcon
 } from '@patternfly/react-icons';
+import EmbeddedChatbot from './components/EmbeddedChatbot';
 import './App.css';
 
 function App() {
@@ -49,26 +47,6 @@ function App() {
   const donutData = [
     { x: 'Used', y: 60 },
     { x: 'Available', y: 40 }
-  ];
-
-  const barChartData = [
-    { name: 'Mon', x: 1, y: 3 },
-    { name: 'Tue', x: 2, y: 5 },
-    { name: 'Wed', x: 3, y: 8 },
-    { name: 'Thu', x: 4, y: 9 },
-    { name: 'Fri', x: 5, y: 7 },
-    { name: 'Sat', x: 6, y: 5 },
-    { name: 'Sun', x: 7, y: 4 }
-  ];
-
-  const lineChartData = [
-    { name: 'CPU', x: 1, y: 3 },
-    { name: 'CPU', x: 2, y: 4 },
-    { name: 'CPU', x: 3, y: 3 },
-    { name: 'CPU', x: 4, y: 5 },
-    { name: 'CPU', x: 5, y: 6 },
-    { name: 'CPU', x: 6, y: 4 },
-    { name: 'CPU', x: 7, y: 7 }
   ];
 
   const onNavToggle = () => {
@@ -196,69 +174,17 @@ function App() {
             </Card>
           </GridItem>
           
-          {/* Charts Row */}
-          <GridItem span={8}>
-            <Card className="dashboard-chart-container">
-              <CardTitle>Weekly Performance</CardTitle>
+          {/* Chatbot Row - Replacing Weekly Performance */}
+          <GridItem span={12}>
+            <Card className="chatbot-container">
+              <CardTitle>System Assistant</CardTitle>
               <CardBody>
-                <div style={{ height: '250px' }}>
-                  <ChartGroup
-                    ariaDesc="Weekly performance metrics"
-                    ariaTitle="Weekly performance chart"
-                    containerComponent={
-                      <div style={{ height: '225px', width: '100%' }} />
-                    }
-                    height={225}
-                    padding={{
-                      bottom: 50,
-                      left: 50,
-                      right: 50,
-                      top: 20
-                    }}
-                    width={800}
-                  >
-                    <ChartBar data={barChartData} />
-                    <ChartLine data={lineChartData} />
-                  </ChartGroup>
-                </div>
+                <EmbeddedChatbot />
               </CardBody>
             </Card>
           </GridItem>
           
-          <GridItem span={4}>
-            <Card>
-              <CardTitle>Storage Utilization</CardTitle>
-              <CardBody>
-                <Bullseye>
-                  <div style={{ height: '230px', width: '230px' }}>
-                    <ChartDonut
-                      ariaDesc="Storage usage"
-                      ariaTitle="Storage donut chart"
-                      constrainToVisibleArea
-                      data={donutData}
-                      labels={({ datum }) => `${datum.x}: ${datum.y}%`}
-                      legendData={[
-                        { name: 'Used: 60%' },
-                        { name: 'Available: 40%' }
-                      ]}
-                      legendOrientation="vertical"
-                      legendPosition="right"
-                      padding={{
-                        bottom: 20,
-                        left: 20,
-                        right: 140,
-                        top: 20
-                      }}
-                      subTitle="of 4 TB"
-                      title="60%"
-                      themeColor={ChartThemeColor.blue}
-                      width={350}
-                    />
-                  </div>
-                </Bullseye>
-              </CardBody>
-            </Card>
-          </GridItem>
+         
           
           {/* Resource Utilization Row */}
           <GridItem span={12}>

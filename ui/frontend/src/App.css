@@ -59,6 +59,31 @@ html, body, #root {
   min-height: 250px;
 }
 
+/* Chatbot container */
+.chatbot-container {
+  height: 100%;
+}
+
+.chatbot-container .pf-v5-c-card__body {
+  height: 400px;
+  padding: 0;
+}
+
+/* Ensure the chatbot takes the full height of its container */
+.pf-v5-c-chatbot {
+  height: 100%;
+}
+
+/* Style the message box to take appropriate space */
+.pf-v5-c-chatbot__content {
+  height: calc(100% - 120px);
+}
+
+.pf-v5-c-message-box {
+  height: 100%;
+  overflow-y: auto;
+}
+
 /* Utility classes */
 .mt-3 {
   margin-top: 1rem;
@@ -72,7 +97,6 @@ html, body, #root {
 /* Remove any sidebar space if not using sidebar */
 .pf-v5-c-page__main {
   --pf-v5-c-page__main--ZIndex: auto;
-  margin-left: 0 !important;
 }
 
 #root {

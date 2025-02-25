@@ -18,8 +18,11 @@
     "@patternfly/react-styles": "6.0.0",
     "@patternfly/react-table": "6.1.0",
     "@patternfly/react-charts": "6.94.18",
+    "@patternfly/react-code-editor": "^6.0.0",
+    "@patternfly/chatbot": "^2.1.0",
     "victory": "36.6.8",
-    "victory-core": "36.6.8"
+    "victory-core": "36.6.8",
+     "dompurify": "^2.2.6"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
