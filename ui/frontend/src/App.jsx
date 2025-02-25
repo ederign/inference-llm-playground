@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
   Page,
   PageSection,
@@ -52,11 +53,14 @@ import {
 } from '@patternfly/react-icons';
 import EmbeddedChatbot from './components/EmbeddedChatbot';
 import './App.css';
+import ModelMetricsPage from './pages/ModelMetricsPage';
 
-function App() {
+function AppContent() {
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [activeTabKey, setActiveTabKey] = useState(0);
   const [showAlert, setShowAlert] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
   
   // Sample data for charts
   const donutData = [
@@ -91,18 +95,51 @@ function App() {
     setActiveTabKey(tabIndex);
   };
 
+  const handleNavSelect = (result) => {
+    console.log("Navigation selected:", result);
+    
+    // Extract the itemId from the result object
+    let navItemId;
+    if (typeof result === 'object' && result !== null) {
+      if (result.itemId && typeof result.itemId === 'object') {
+        navItemId = result.itemId.itemId; // Handle nested object case
+      } else if (result.itemId) {
+        navItemId = result.itemId; // Handle direct itemId property
+      }
+    }
+    
+    console.log("Navigating to:", navItemId);
+    
+    if (navItemId === 'dashboard') {
+      console.log("Navigating to dashboard");
+      navigate('/');
+    } else if (navItemId === 'model-metrics') {
+      console.log("Navigating to model metrics");
+      navigate('/model-metrics');
+    }
+  };
+
   const Navigation = (
-    <Nav>
+    <Nav onSelect={(event, itemObj) => {
+      console.log("Nav selected with itemId:", itemObj);
+      // Pass the itemObj directly to handleNavSelect
+      handleNavSelect({ itemId: itemObj });
+    }}>
       <NavList>
-        <NavItem itemId={0} isActive icon={<MonitoringIcon />}>
+        <NavItem 
+          itemId="dashboard" 
+          isActive={location.pathname === '/'} 
+          icon={<ServerGroupIcon />}
+        >
           Dashboard
         </NavItem>
-        <NavItem itemId={1} icon={<MonitoringIcon />}>
+        <NavItem 
+          itemId="model-metrics" 
+          isActive={location.pathname === '/model-metrics'} 
+          icon={<MonitoringIcon />}
+        >
           Model Metrics
-        </NavItem>
-        <NavItem itemId={2} icon={<ServerGroupIcon />}>
-          Infrastructure
-        </NavItem>
+        </NavItem>  
       </NavList>
     </Nav>
   );
@@ -122,6 +159,35 @@ function App() {
       isManagedSidebar
       onPageResize={onNavToggle}
     >
+      {console.log("Current location:", location.pathname)}
+      <Routes>
+        <Route path="/" element={
+          <>
+            {console.log("Rendering Dashboard")}
+            <DashboardContent 
+              showAlert={showAlert} 
+              setShowAlert={setShowAlert} 
+              activeTabKey={activeTabKey} 
+              handleTabClick={handleTabClick}
+              timeSeriesData={timeSeriesData}
+            />
+          </>
+        } />
+        <Route path="/model-metrics" element={
+          <>
+            {console.log("Rendering Model Metrics")}
+            <ModelMetricsPage />
+          </>
+        } />
+      </Routes>
+    </Page>
+  );
+}
+
+// Extract Dashboard content to a separate component
+function DashboardContent({ showAlert, setShowAlert, activeTabKey, handleTabClick, timeSeriesData }) {
+  return (
+    <>
       <PageSection variant={PageSectionVariants.light}>
         {showAlert && (
           <Alert
@@ -151,7 +217,7 @@ function App() {
         <Flex>
           <FlexItem>
             <Title headingLevel="h1" size="2xl">Granite-31-1b-a400m-instruct</Title>
-            <Title headingLevel="h1" size="xl">LLM Model Serving Performance & Resources</Title>
+            <Title headingLevel="h1" size="xl">LLM Model Serving Dashboard & Performance Resources</Title>
           </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
             <Flex>
@@ -168,259 +234,9 @@ function App() {
       
       <PageSection>
         <Grid hasGutter>
-          {/* Status Cards Row */}
-          <GridItem span={3}>
-            <Card>
-              <CardBody>
-                <Flex>
-                  <FlexItem>
-                    <CpuIcon size="lg" />
-                  </FlexItem>
-                  <FlexItem>
-                    <Title headingLevel="h4" size="md">GPU Utilization</Title>
-                    <Title headingLevel="h2" size="3xl">78%</Title>
-                    <Label color="green">Optimal</Label>
-                  </FlexItem>
-                </Flex>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          <GridItem span={3}>
-            <Card>
-              <CardBody>
-                <Flex>
-                  <FlexItem>
-                    <ClockIcon size="lg" />
-                  </FlexItem>
-                  <FlexItem>
-                    <Title headingLevel="h4" size="md">Avg. Latency</Title>
-                    <Title headingLevel="h2" size="3xl">42ms</Title>
-                    <Label color="green">Good</Label>
-                  </FlexItem>
-                </Flex>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          <GridItem span={3}>
-            <Card>
-              <CardBody>
-                <Flex>
-                  <FlexItem>
-                    <CubesIcon size="lg" />
-                  </FlexItem>
-                  <FlexItem>
-                    <Title headingLevel="h4" size="md">Requests/min</Title>
-                    <Title headingLevel="h2" size="3xl">186</Title>
-                    <Label color="blue">Active</Label>
-                  </FlexItem>
-                </Flex>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          <GridItem span={3}>
-            <Card>
-              <CardBody>
-                <Flex>
-                  <FlexItem>
-                    <MemoryIcon size="lg" />
-                  </FlexItem>
-                  <FlexItem>
-                    <Title headingLevel="h4" size="md">VRAM Usage</Title>
-                    <Title headingLevel="h2" size="3xl">32GB</Title>
-                    <Label color="orange">High</Label>
-                  </FlexItem>
-                </Flex>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          {/* Model Performance Charts */}
-          <GridItem span={6}>
-            <Card>
-              <CardTitle>Inference Performance</CardTitle>
-              <CardBody>
-                <Tabs activeKey={activeTabKey} onSelect={handleTabClick} isBox>
-                  <Tab eventKey={0} title={<TabTitleText>Latency</TabTitleText>}>
-                    <div style={{ height: '250px', width: '100%' }}>
-                      <ChartGroup
-                        containerComponent={<ChartVoronoiContainer />}
-                        height={250}
-                        width={500}
-                        padding={{ top: 20, right: 20, bottom: 50, left: 50 }}
-                      >
-                        <ChartLine
-                          data={timeSeriesData.latency}
-                          style={{ data: { stroke: '#0066CC', strokeWidth: 3 } }}
-                        />
-                      </ChartGroup>
-                      <div style={{ textAlign: 'center' }}>Time (minutes)</div>
-                    </div>
-                  </Tab>
-                  <Tab eventKey={1} title={<TabTitleText>Throughput</TabTitleText>}>
-                    <div style={{ height: '250px', width: '100%' }}>
-                      <ChartGroup
-                        containerComponent={<ChartVoronoiContainer />}
-                        height={250}
-                        width={500}
-                        padding={{ top: 20, right: 20, bottom: 50, left: 50 }}
-                      >
-                        <ChartLine
-                          data={timeSeriesData.throughput}
-                          style={{ data: { stroke: '#6EC664', strokeWidth: 3 } }}
-                        />
-                      </ChartGroup>
-                      <div style={{ textAlign: 'center' }}>Time (minutes)</div>
-                    </div>
-                  </Tab>
-                </Tabs>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          <GridItem span={6}>
-            <Card>
-              <CardTitle>GPU Utilization Over Time</CardTitle>
-              <CardBody>
-                <div style={{ height: '250px', width: '100%' }}>
-                  <ChartGroup
-                    containerComponent={<ChartVoronoiContainer />}
-                    height={250}
-                    width={500}
-                    padding={{ top: 20, right: 20, bottom: 50, left: 50 }}
-                  >
-                    <ChartLine
-                      data={timeSeriesData.gpuUtilization}
-                      style={{ data: { stroke: '#F0AB00', strokeWidth: 3 } }}
-                    />
-                  </ChartGroup>
-                  <div style={{ textAlign: 'center' }}>Time (minutes)</div>
-                </div>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          {/* Resource Utilization Row */}
-          <GridItem span={6}>
-            <Card>
-              <CardTitle>Resource Utilization</CardTitle>
-              <CardBody>
-                <Grid hasGutter>
-                  <GridItem span={12}>
-                    <Title headingLevel="h4" size="md">GPU Memory</Title>
-                    <Progress
-                      value={88}
-                      title="88%"
-                      size={ProgressSize.lg}
-                      measureLocation={ProgressMeasureLocation.outside}
-                    />
-                  </GridItem>
-                  <GridItem span={12}>
-                    <Title headingLevel="h4" size="md">CPU Usage</Title>
-                    <Progress
-                      value={42}
-                      title="42%"
-                      size={ProgressSize.lg}
-                      measureLocation={ProgressMeasureLocation.outside}
-                    />
-                  </GridItem>
-                  <GridItem span={12}>
-                    <Title headingLevel="h4" size="md">Network Bandwidth</Title>
-                    <Progress
-                      value={65}
-                      title="65%"
-                      size={ProgressSize.lg}
-                      measureLocation={ProgressMeasureLocation.outside}
-                    />
-                  </GridItem>
-                </Grid>
-              </CardBody>
-            </Card>
-          </GridItem>
-          
-          <GridItem span={6}>
-            <Card>
-              <CardTitle>Model Serving Statistics</CardTitle>
-              <CardBody>
-                <Grid hasGutter>
-                  <GridItem span={6}>
-                    <Card isPlain>
-                      <CardTitle>Token Generation</CardTitle>
-                      <CardBody>
-                        <div style={{ height: '180px' }}>
-                          <ChartDonut
-                            ariaDesc="Token generation stats"
-                            ariaTitle="Token generation donut chart"
-                            constrainToVisibleArea
-                            data={[
-                              { x: 'Prompt', y: 30 },
-                              { x: 'Generation', y: 70 }
-                            ]}
-                            labels={({ datum }) => `${datum.x}: ${datum.y}%`}
-                            legendData={[
-                              { name: 'Prompt: 30%' },
-                              { name: 'Generation: 70%' }
-                            ]}
-                            legendOrientation="vertical"
-                            legendPosition="right"
-                            padding={{
-                              bottom: 20,
-                              left: 20,
-                              right: 140,
-                              top: 20
-                            }}
-                            themeColor={ChartThemeColor.blue}
-                            width={350}
-                          />
-                        </div>
-                      </CardBody>
-                    </Card>
-                  </GridItem>
-                  <GridItem span={6}>
-                    <Card isPlain>
-                      <CardTitle>Request Status</CardTitle>
-                      <CardBody>
-                        <div style={{ height: '180px' }}>
-                          <ChartDonut
-                            ariaDesc="Request status stats"
-                            ariaTitle="Request status donut chart"
-                            constrainToVisibleArea
-                            data={[
-                              { x: 'Success', y: 95 },
-                              { x: 'Failed', y: 3 },
-                              { x: 'Timeout', y: 2 }
-                            ]}
-                            labels={({ datum }) => `${datum.x}: ${datum.y}%`}
-                            legendData={[
-                              { name: 'Success: 95%' },
-                              { name: 'Failed: 3%' },
-                              { name: 'Timeout: 2%' }
-                            ]}
-                            legendOrientation="vertical"
-                            legendPosition="right"
-                            padding={{
-                              bottom: 20,
-                              left: 20,
-                              right: 140,
-                              top: 20
-                            }}
-                            themeColor={ChartThemeColor.green}
-                            width={350}
-                          />
-                        </div>
-                      </CardBody>
-                    </Card>
-                  </GridItem>
-                </Grid>
-              </CardBody>
-            </Card>
-          </GridItem>
-
           <GridItem span={12}>
             <Card className="chatbot-container">
-              <CardTitle>System Assistant</CardTitle>
+              <CardTitle>Chat with your model</CardTitle>
               <CardBody>
                 <EmbeddedChatbot />
               </CardBody>
@@ -428,7 +244,15 @@ function App() {
           </GridItem>
         </Grid>
       </PageSection>
-    </Page>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
