@@ -43,7 +43,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
-##temp just for now
+##temp just for now <----- CHANGEME
 COPY ${BFF_SOURCE_CODE}/static/ static/
 
 # Build the Go application

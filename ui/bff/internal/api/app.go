@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/ederign/inference-llm-playground/internal/config"
 	helper "github.com/ederign/inference-llm-playground/internal/helpers"
@@ -56,8 +57,19 @@ func (app *App) Routes() http.Handler {
 	//file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
+
+	// Handle assets directory explicitly
+	appMux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir(path.Join(app.config.StaticAssetsDir, "assets")))))
+
+	// Handle root and other paths
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
+
+		// Log all incoming requests to help debug
+		ctxLogger.Debug("Received request",
+			slog.String("path", r.URL.Path),
+			slog.String("method", r.Method))
+
 		// Check if the requested file exists
 		if _, err := staticDir.Open(r.URL.Path); err == nil {
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
@@ -69,6 +81,24 @@ func (app *App) Routes() http.Handler {
 		// Fallback to index.html for SPA routes
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
+	})
+
+	// Add this handler to catch assets requested from any path
+	appMux.HandleFunc("/v1/models/assets/", func(w http.ResponseWriter, r *http.Request) {
+		// Redirect or rewrite the request to the correct assets path
+		newPath := strings.Replace(r.URL.Path, "/v1/models/assets/", "/assets/", 1)
+		ctxLogger := helper.GetContextLoggerFromReq(r)
+		ctxLogger.Debug("Redirecting asset request",
+			slog.String("from", r.URL.Path),
+			slog.String("to", newPath))
+
+		// Option 1: Redirect (client-side)
+		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
+
+		// Option 2: Rewrite and serve (server-side)
+		// newReq := r.Clone(r.Context())
+		// newReq.URL.Path = newPath
+		// http.StripPrefix("/assets/", http.FileServer(http.Dir(path.Join(app.config.StaticAssetsDir, "assets")))).ServeHTTP(w, newReq)
 	})
 
 	return app.RecoverPanic(app.EnableCORS(appMux))
