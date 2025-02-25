@@ -24,7 +24,9 @@ import {
   NavItem,
   Tabs,
   Tab,
-  TabTitleText
+  TabTitleText,
+  Alert,
+  AlertActionCloseButton
 } from '@patternfly/react-core';
 import {
   ChartDonut,
@@ -54,6 +56,7 @@ import './App.css';
 function App() {
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [activeTabKey, setActiveTabKey] = useState(0);
+  const [showAlert, setShowAlert] = useState(true);
   
   // Sample data for charts
   const donutData = [
@@ -120,6 +123,31 @@ function App() {
       onPageResize={onNavToggle}
     >
       <PageSection variant={PageSectionVariants.light}>
+        {showAlert && (
+          <Alert
+            variant="warning"
+            title="Important Note"
+            actionClose={<AlertActionCloseButton onClose={() => setShowAlert(false)} />}
+            style={{ marginBottom: '16px' }}
+          > 
+          <p>
+            This is a POC of a <strong>UI companion</strong> of a Model. It is hosted in the KServe Inference Service (in this case, a LLM model).
+          </p>
+          <p>
+           Each model type could potentially have a it&apos;s own dashboard hosted in the Inference Service (in companion with the model), with a different set of metrics and charts.
+          </p>
+            <p>
+              Note that, the metrics charts displayed for this demo are currently hardcoded for demonstration purposes. 
+            </p>
+            <p>
+            In a real solution, these could probably be based on real-time LLM observability data.
+            </p>
+            <p>
+              <strong>The chatbot is live</strong> and connected to the Inference Service model. Your interactions will be processed by the actual model.
+            </p>
+          </Alert>
+        )}
+        
         <Flex>
           <FlexItem>
             <Title headingLevel="h1" size="2xl">Granite-31-1b-a400m-instruct</Title>

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Bullseye, Brand, DropdownList, DropdownItem, Page, Masthead, MastheadMain, MastheadBrand, MastheadLogo, PageSidebarBody, PageSidebar, MastheadToggle, PageToggleButton, SkipToContent} from '@patternfly/react-core';
+import {Bullseye, Brand, DropdownList, DropdownItem, Page, Masthead, MastheadMain, MastheadBrand, MastheadLogo, PageSidebarBody, PageSidebar, MastheadToggle, PageToggleButton, SkipToContent, Alert, AlertActionCloseButton} from '@patternfly/react-core';
 import Chatbot, {ChatbotDisplayMode} from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -159,6 +159,9 @@ export const EmbeddedChatbot = () => {
     overflow: 'hidden'
   };
   
+  // Add state for the alert
+  const [showAlert, setShowAlert] = React.useState(true);
+  
   React.useEffect(() => {
     if (messages.length > 2) {
       scrollToBottomRef.current?.scrollIntoView({
@@ -316,6 +319,7 @@ export const EmbeddedChatbot = () => {
     return filteredConversations;
   };
   const masthead = <Masthead>
+    
       <MastheadMain>
         <MastheadToggle>
           <PageToggleButton variant="plain" aria-label="Global navigation" isSidebarOpen={isSidebarOpen} onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)} id="fill-nav-toggle">
@@ -343,64 +347,70 @@ export const EmbeddedChatbot = () => {
     </SkipToContent>;
   return (<>
   <style>{customStyles}</style>
-  <Chatbot displayMode={displayMode}>
-        <ChatbotConversationHistoryNav displayMode={displayMode} onDrawerToggle={() => {
-    setIsDrawerOpen(!isDrawerOpen);
-    setConversations(initialConversations);
-  }} isDrawerOpen={isDrawerOpen} setIsDrawerOpen={setIsDrawerOpen} activeItemId="1" onSelectActiveItem={(e, selectedItem) => console.log(`Selected history item with id ${selectedItem}`)} conversations={conversations} onNewChat={() => {
-    setIsDrawerOpen(!isDrawerOpen);
-    setMessages([]);
-    setConversations(initialConversations);
-  }} handleTextInputChange={value => {
-    if (value === '') {
-      setConversations(initialConversations);
-    }
-    const newConversations = findMatchingItems(value);
-    setConversations(newConversations);
-  }} drawerContent={<>
-              <ChatbotHeader>
-                <ChatbotHeaderMain>
-                  <ChatbotHeaderMenu ref={historyRef} aria-expanded={isDrawerOpen} onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)} />
+  
+  {/* Regular alert at the top of the chatbot container */}
+  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+  
+    
+    <Chatbot displayMode={displayMode}>
+      <ChatbotConversationHistoryNav displayMode={displayMode} onDrawerToggle={() => {
+        setIsDrawerOpen(!isDrawerOpen);
+        setConversations(initialConversations);
+      }} isDrawerOpen={isDrawerOpen} setIsDrawerOpen={setIsDrawerOpen} activeItemId="1" onSelectActiveItem={(e, selectedItem) => console.log(`Selected history item with id ${selectedItem}`)} conversations={conversations} onNewChat={() => {
+        setIsDrawerOpen(!isDrawerOpen);
+        setMessages([]);
+        setConversations(initialConversations);
+      }} handleTextInputChange={value => {
+        if (value === '') {
+          setConversations(initialConversations);
+        }
+        const newConversations = findMatchingItems(value);
+        setConversations(newConversations);
+      }} drawerContent={<>
+                <ChatbotHeader>
+                  <ChatbotHeaderMain>
+                    <ChatbotHeaderMenu ref={historyRef} aria-expanded={isDrawerOpen} onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)} />
+                    
+                  </ChatbotHeaderMain>
+                  <ChatbotHeaderActions>
+                    <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
+                      <DropdownList>
+                        <DropdownItem value="Granite 7B" key="granite">
+                          Granite 7B
+                        </DropdownItem>
+                        <DropdownItem value="Llama 3.0" key="llama">
+                          Llama 3.0
+                        </DropdownItem>
+                        <DropdownItem value="Mistral 3B" key="mistral">
+                          Mistral 3B
+                        </DropdownItem>
+                      </DropdownList>
+                    </ChatbotHeaderSelectorDropdown>
+                  </ChatbotHeaderActions>
+                </ChatbotHeader>
+                <ChatbotContent>
                   
-                </ChatbotHeaderMain>
-                <ChatbotHeaderActions>
-                  <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
-                    <DropdownList>
-                      <DropdownItem value="Granite 7B" key="granite">
-                        Granite 7B
-                      </DropdownItem>
-                      <DropdownItem value="Llama 3.0" key="llama">
-                        Llama 3.0
-                      </DropdownItem>
-                      <DropdownItem value="Mistral 3B" key="mistral">
-                        Mistral 3B
-                      </DropdownItem>
-                    </DropdownList>
-                  </ChatbotHeaderSelectorDropdown>
-                </ChatbotHeaderActions>
-              </ChatbotHeader>
-              <ChatbotContent>
-                
-                <MessageBox announcement={announcement}>
-                  <ChatbotWelcomePrompt title="Hello, Chatbot User" description="How may I help you today?" prompts={welcomePrompts} />
-                 
-                  {messages.map((message, index) => {
-    if (index === messages.length - 1) {
-      return <>
-                          <div ref={scrollToBottomRef}></div>
-                          <Message key={message.id} {...message} />
-                        </>;
-    }
-    return <Message key={message.id} {...message} />;
-  })}
-                </MessageBox>
-              </ChatbotContent>
-              <ChatbotFooter>
-                <MessageBar  onSendMessage={handleSend} hasMicrophoneButton isSendButtonDisabled={isSendButtonDisabled} />
-                <ChatbotFootnote {...footnoteProps} />
-              </ChatbotFooter>
-            </>}></ChatbotConversationHistoryNav>
-      </Chatbot>
+                  <MessageBox announcement={announcement}>
+                    <ChatbotWelcomePrompt title="Hello, Chatbot User" description="How may I help you today?" prompts={welcomePrompts} />
+                   
+                    {messages.map((message, index) => {
+                      if (index === messages.length - 1) {
+                        return <>
+                                    <div ref={scrollToBottomRef}></div>
+                                    <Message key={message.id} {...message} />
+                                  </>;
+                      }
+                      return <Message key={message.id} {...message} />;
+                    })}
+                  </MessageBox>
+                </ChatbotContent>
+                <ChatbotFooter>
+                  <MessageBar onSendMessage={handleSend} hasMicrophoneButton isSendButtonDisabled={isSendButtonDisabled} />
+                  <ChatbotFootnote {...footnoteProps} />
+                </ChatbotFooter>
+              </>}></ChatbotConversationHistoryNav>
+    </Chatbot>
+  </div>
   </>)
 };
 export default EmbeddedChatbot;
