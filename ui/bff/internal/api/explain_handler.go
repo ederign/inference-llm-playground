@@ -1,13 +1,13 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
-	helper "github.com/ederign/inference-llm-playground/internal/helpers"
-	"github.com/julienschmidt/httprouter"
 	"log/slog"
 	"net/http"
 	"path"
+
+	helper "github.com/ederign/inference-llm-playground/internal/helpers"
+	"github.com/julienschmidt/httprouter"
 )
 
 func (app *App) ExplainPostHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -17,12 +17,21 @@ func (app *App) ExplainPostHandler(w http.ResponseWriter, r *http.Request, ps ht
 	fmt.Println("ExplainPostHandler")
 	fmt.Println(app.config.PredictorHost)
 	fmt.Println(app.config.PredictorHttpPort)
-	// Fixed response for testing
-	response := map[string]interface{}{
-		"model":       model,
-		"status":      "success",
-		"explanation": "This is a test explanation response for model inference.",
-	}
+
+	// //create http client
+	// baseURL := "https://granite-8b-code-instruct-maas-apicast-production.apps.prod.rhoai.rh-aiservices-bu.com:443"
+	// _, err := integrations.NewHTTPClient(app.logger, baseURL)
+	// if err != nil {
+	// 	app.serverErrorResponse(w, r, fmt.Errorf("failed to create Kubernetes client: %v", err))
+	// 	return
+	// }
+
+	// // Fixed response for testing
+	// response := map[string]interface{}{
+	// 	"model":       model,
+	// 	"status":      "success",
+	// 	"explanation": "This is a test explanation response for model inference.",
+	// }
 
 	// Log the request
 	app.logger.Debug("Returning fixed JSON response", slog.String("model", model))
@@ -32,7 +41,7 @@ func (app *App) ExplainPostHandler(w http.ResponseWriter, r *http.Request, ps ht
 	w.WriteHeader(http.StatusOK)
 
 	// Encode and send response
-	json.NewEncoder(w).Encode(response)
+	//json.NewEncoder(w).Encode(response)
 }
 
 func (app *App) ExplainGetHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

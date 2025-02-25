@@ -4,18 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/ederign/inference-llm-playground/internal/api"
-	"github.com/ederign/inference-llm-playground/internal/config"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/ederign/inference-llm-playground/internal/api"
+	"github.com/ederign/inference-llm-playground/internal/config"
 )
 
 func main() {
-	fmt.Println("BFF v5")
+	fmt.Println("BFF v7")
 	var cfg config.EnvConfig
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 8080), "API server port")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
@@ -30,6 +31,10 @@ func main() {
 	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "DEBUG")), "Sets server log level, possible values: error, warn, info, debug")
 	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
 	flag.Parse()
+
+	fmt.Println("cfg.ModelName", cfg.ModelName)
+	fmt.Println("cfg.PredictorHost", cfg.PredictorHost)
+	fmt.Println("cfg.PredictorHttpPort", cfg.PredictorHttpPort)
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,

@@ -6,7 +6,6 @@ import (
 	"github.com/ederign/inference-llm-playground/internal/constants"
 	helper "github.com/ederign/inference-llm-playground/internal/helpers"
 	"github.com/google/uuid"
-	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 	"log/slog"
 	"net/http"
@@ -61,42 +60,4 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func (app *App) AttachRESTClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
-		//modelRegistryID := ps.ByName(ModelRegistryId)
-		//
-		//namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
-		//if !ok || namespace == "" {
-		//	app.badRequestResponse(w, r, fmt.Errorf("missing namespace in the context"))
-		//}
-		//
-		//modelRegistryBaseURL, err := resolveModelRegistryURL(r.Context(), namespace, modelRegistryID, app.kubernetesClient, app.config)
-		//if err != nil {
-		//	app.notFoundResponse(w, r)
-		//	return
-		//}
-		//
-		//// Set up a child logger for the rest client that automatically adds the request id to all statements for
-		//// tracing.
-		//restClientLogger := app.logger
-		//traceId, ok := r.Context().Value(constants.TraceIdKey).(string)
-		//if app.logger != nil {
-		//	if ok {
-		//		restClientLogger = app.logger.With(slog.String("trace_id", traceId))
-		//	} else {
-		//		app.logger.Warn("Failed to set trace_id for tracing")
-		//	}
-		//}
-		//
-		//client, err := integrations.NewHTTPClient(restClientLogger, modelRegistryID, modelRegistryBaseURL)
-		//if err != nil {
-		//	app.serverErrorResponse(w, r, fmt.Errorf("failed to create Kubernetes client: %v", err))
-		//	return
-		//}
-		//ctx := context.WithValue(r.Context(), constants.ModelRegistryHttpClientKey, client)
-		next(w, r.WithContext(r.Context()), ps)
-	}
 }

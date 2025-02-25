@@ -19,10 +19,9 @@ type HTTPClientInterface interface {
 }
 
 type HTTPClient struct {
-	client          *http.Client
-	baseURL         string
-	ModelRegistryID string
-	logger          *slog.Logger
+	client  *http.Client
+	baseURL string
+	logger  *slog.Logger
 }
 
 type ErrorResponse struct {
@@ -39,20 +38,15 @@ func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s - %s", e.StatusCode, e.Code, e.Message)
 }
 
-func NewHTTPClient(logger *slog.Logger, modelRegistryID string, baseURL string) (HTTPClientInterface, error) {
+func NewHTTPClient(logger *slog.Logger, baseURL string) (HTTPClientInterface, error) {
 
 	return &HTTPClient{
 		client: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}},
-		baseURL:         baseURL,
-		ModelRegistryID: modelRegistryID,
-		logger:          logger,
+		baseURL: baseURL,
+		logger:  logger,
 	}, nil
-}
-
-func (c *HTTPClient) GetModelRegistryID() string {
-	return c.ModelRegistryID
 }
 
 func (c *HTTPClient) GET(url string) ([]byte, error) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Page,
   PageSection,
@@ -11,13 +11,17 @@ import {
   GridItem,
   Flex,
   FlexItem,
-  Divider,
   Button,
   Bullseye,
   Label,
   Progress,
   ProgressSize,
-  ProgressMeasureLocation
+  ProgressMeasureLocation,
+  PageSidebar,
+  PageSidebarBody,
+  Nav,
+  NavList,
+  NavItem
 } from '@patternfly/react-core';
 import {
   ChartBar,
@@ -32,11 +36,15 @@ import {
   StorageDomainIcon,
   UsersIcon,
   BellIcon,
-  CogIcon
+  CogIcon, 
+  MonitoringIcon,
+  ServerGroupIcon
 } from '@patternfly/react-icons';
 import './App.css';
 
 function App() {
+  const [isNavOpen, setIsNavOpen] = useState(true);
+  
   // Sample data for charts
   const donutData = [
     { x: 'Used', y: 60 },
@@ -63,8 +71,41 @@ function App() {
     { name: 'CPU', x: 7, y: 7 }
   ];
 
+  const onNavToggle = () => {
+    setIsNavOpen(!isNavOpen);
+  };
+
+  const Navigation = (
+    <Nav>
+      <NavList>
+        <NavItem itemId={0} isActive icon={<MonitoringIcon />}>
+          Dashboard
+        </NavItem>
+        <NavItem itemId={1} icon={<MonitoringIcon />}>
+          Monitoring
+        </NavItem>
+        <NavItem itemId={2} icon={<ServerGroupIcon />}>
+          Infrastructure
+        </NavItem>
+      </NavList>
+    </Nav>
+  );
+
+  const Sidebar = (
+    <PageSidebar isSidebarOpen={isNavOpen}>
+      <PageSidebarBody>
+        {Navigation}
+      </PageSidebarBody>
+    </PageSidebar>
+  );
+
   return (
-    <Page>
+    <Page 
+      header={<div className="pf-v5-c-page__header-brand">System Dashboard</div>}
+      sidebar={Sidebar}
+      isManagedSidebar
+      onPageResize={onNavToggle}
+    >
       <PageSection variant={PageSectionVariants.light}>
         <Flex>
           <FlexItem>
@@ -157,7 +198,7 @@ function App() {
           
           {/* Charts Row */}
           <GridItem span={8}>
-            <Card>
+            <Card className="dashboard-chart-container">
               <CardTitle>Weekly Performance</CardTitle>
               <CardBody>
                 <div style={{ height: '250px' }}>
