@@ -208,13 +208,15 @@ export const EmbeddedChatbot = () => {
     setAnnouncement(`Message from User: ${message}. Message from Bot is loading.`);
     
     // Construct the API endpoint using routeLink
-    const apiEndpoint = 'https://granite-31-1b-a400m-instruct-inference-llm.apps.rosa.ui-chat-gpu.py3o.p3.openshiftapps.com/v1/chat/completions';
+    
+    const apiEndpoint = 'https://granite-31-1b-a400m-instruct-v1-inference-llm.apps.rosa.ui-chat-gpu.py3o.p3.openshiftapps.com/v1/chat/completions';
 
     // Extract model ID from modelName or use a default
-    const modelId = 'granite-31-1b-a400m-instruct';
+    //const modelId = 'granite-31-1b-a400m-instruct';
+    const modelId = 'granite-31-1b-a400m-instruct-v1'
 
-    console.log('apiEndpoint', apiEndpoint);
-    console.log('modelId', modelId);
+    console.log('apiEndpoint1', apiEndpoint);
+    console.log('modelId1', modelId);
 
     // Prepare the request payload
     const payload = {
