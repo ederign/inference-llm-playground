@@ -186,6 +186,7 @@ function AppContent() {
 
 // Extract Dashboard content to a separate component
 function DashboardContent({ showAlert, setShowAlert, activeTabKey, handleTabClick, timeSeriesData }) {
+  showAlert = false;
   return (
     <>
       <PageSection variant={PageSectionVariants.light}>
@@ -216,8 +217,7 @@ function DashboardContent({ showAlert, setShowAlert, activeTabKey, handleTabClic
         
         <Flex>
           <FlexItem>
-            <Title headingLevel="h1" size="2xl">Granite-31-1b-a400m-instruct</Title>
-            <Title headingLevel="h1" size="xl">LLM Model Serving Dashboard & Performance Resources</Title>
+            <Title headingLevel="h1" size="2xl">LLama Stack Chat Bot UI</Title> 
           </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
             <Flex>

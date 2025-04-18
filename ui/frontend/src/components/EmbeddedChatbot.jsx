@@ -12,8 +12,21 @@ import ChatbotHeader, {ChatbotHeaderMenu, ChatbotHeaderMain, ChatbotHeaderTitle,
 import {BarsIcon} from '@patternfly/react-icons';
 import userAvatar from '../assets/user_avatar.svg';
 import patternflyAvatar from '../assets/patternfly_avatar.jpg';
+import LlamaStackClient from 'llama-stack-client';
 import '@patternfly/react-core/dist/styles/base.css';
 import '@patternfly/chatbot/dist/css/main.css';
+
+// Initialize Llama Stack Client
+// Using the proxied endpoint to avoid CORS issues
+const llamaClient = new LlamaStackClient({
+  baseURL: window.location.origin + '/api/llama-stack'
+});
+
+// Debug the client to see configuration in console
+console.log('LlamaStackClient initialized with proxied URL:', {
+  baseURL: llamaClient.baseURL
+});
+
 const footnoteProps = {
   label: 'Lightspeed uses AI. Check for mistakes.',
   popover: {
@@ -74,7 +87,7 @@ const date = new Date();
 const initialMessages = [{
     id: '1',
     role: 'bot',
-    content: 'Hello RHOAI user, I can assist you in testing your fine-tuned model; do you want to give it a try?',
+    content: 'Hello RHOAI user, I heard that you are testing your model deployed on Llama Stack; do you want to give it a try?',
     name: 'Bot',
     avatar: patternflyAvatar,
     timestamp: date.toLocaleString(),
@@ -140,7 +153,7 @@ const customStyles = `
 `;
 export const EmbeddedChatbot = () => {
   const [messages, setMessages] = React.useState(initialMessages);
-  const [selectedModel, setSelectedModel] = React.useState('Granite 7B');
+  const [selectedModel, setSelectedModel] = React.useState('Llama 3.0');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = React.useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [conversations, setConversations] = React.useState(initialConversations);
@@ -161,6 +174,8 @@ export const EmbeddedChatbot = () => {
   
   // Add state for the alert
   const [showAlert, setShowAlert] = React.useState(true);
+  // Toggle for streaming response
+  const [useStreaming, setUseStreaming] = React.useState(true);
   
   React.useEffect(() => {
     if (messages.length > 2) {
@@ -169,17 +184,24 @@ export const EmbeddedChatbot = () => {
       });
     }
   }, [messages]);
+  
   const onSelectModel = (_event, value) => {
     setSelectedModel(value);
   };
+  
   const generateId = () => {
     const id = Date.now() + Math.random();
     return id.toString();
   };
+  
   const handleSend = message => {
     setIsSendButtonDisabled(true);
     const newMessages = [];
-    messages.forEach(message => newMessages.push(message));
+    messages.forEach(message => {
+      if (message) {
+        newMessages.push(message);
+      }
+    });
     const date = new Date();
     newMessages.push({
       id: generateId(),
@@ -197,7 +219,7 @@ export const EmbeddedChatbot = () => {
     newMessages.push({
       id: botMessageId,
       role: 'bot',
-      content: 'API response goes here',
+      content: '',
       name: 'Bot',
       avatar: patternflyAvatar,
       isLoading: true,
@@ -207,102 +229,199 @@ export const EmbeddedChatbot = () => {
     setMessages(newMessages);
     setAnnouncement(`Message from User: ${message}. Message from Bot is loading.`);
     
-    // Construct the API endpoint using routeLink
+    // Get the model based on the selected dropdown option
+    const getModelId = () => {
+      switch(selectedModel) {
+        case 'Llama 3.0':
+          return 'llama3.2:3b'; // Using your specified model
+        case 'Granite 7B':
+          return 'granite-31-1b-a400m-instruct-v1';
+        case 'Mistral 3B':
+          return 'mistral-3b';
+        default:
+          return 'llama3.2:3b'; // Default to Llama model
+      }
+    };
     
-    const apiEndpoint = 'https://granite-31-1b-a400m-instruct-v1-inference-llm.apps.rosa.ui-chat-gpu.py3o.p3.openshiftapps.com/v1/chat/completions';
+    const modelId = getModelId();
+    console.log('Using model:', modelId);
 
-    // Extract model ID from modelName or use a default
-    //const modelId = 'granite-31-1b-a400m-instruct';
-    const modelId = 'granite-31-1b-a400m-instruct-v1'
-
-    console.log('apiEndpoint1', apiEndpoint);
-    console.log('modelId1', modelId);
-
-    // Prepare the request payload
-    const payload = {
-      model: modelId,
+    // Prepare the chat completion request for Llama Stack Client
+    const chatRequest = {
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: message },
+        { role: 'user', content: message }
       ],
+      model_id: modelId,
       temperature: 0.7,
       max_tokens: 500,
+      stream: useStreaming // Enable streaming if the toggle is on
     };
 
-    // Make the API call
-    fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        // Update the bot message with the API response
-        const loadedMessages = [...newMessages];
-        const botMessageIndex = loadedMessages.findIndex((msg) => msg.id === botMessageId);
+    console.log('Sending request to Llama Stack with model_id:', modelId, 'streaming:', useStreaming);
 
-        if (botMessageIndex !== -1) {
+    if (useStreaming) {
+      // Simplified streaming implementation
+      try {
+        // We need to use the original botMessageId that was already added to messages
+        // No need to generate a new one as it will create a duplicate message
+        
+        // Update the existing message to show connecting status
+        const loadedMessages = [...newMessages].filter(msg => msg !== undefined);
+        const botMessageIndex = loadedMessages.findIndex((msg) => msg && msg.id === botMessageId);
+        
+        if (botMessageIndex !== -1 && loadedMessages[botMessageIndex]) {
           loadedMessages[botMessageIndex] = {
-            id: botMessageId,
-            role: 'bot',
-            content: data.choices[0].message.content,
-            name: 'Bot',
-            isLoading: false,
-            avatar: patternflyAvatar,
-            timestamp: date.toLocaleString(),
-            actions: {
-              positive: { onClick: () => console.log('Good response') },
-              negative: { onClick: () => console.log('Bad response') },
-              copy: { onClick: () => console.log('Copy') },
-              share: { onClick: () => console.log('Share') },
-              listen: { onClick: () => console.log('Listen') },
-            },
+            ...loadedMessages[botMessageIndex],
+            isLoading: true,
+            content: 'Connecting to model...'
           };
+          setMessages([...loadedMessages]);
         }
+        
+        // Accumulate the full response
+        let fullResponse = '';
+        
+        llamaClient.inference.chatCompletion(chatRequest)
+          .then(async stream => {
+            // Process the stream
+            for await (const chunk of stream) {
+              if (chunk.event && chunk.event.delta && chunk.event.delta.text) {
+                fullResponse += chunk.event.delta.text;
+                console.log('Added content chunk');
+              }
+            }
+            
+            console.log('Stream complete, updating message with full response');
+            
+            // When stream is complete, update the message once
+            setMessages(prevMessages => {
+              const messagesArray = [...prevMessages];
+              const botMsgIndex = messagesArray.findIndex(msg => msg && msg.id === botMessageId);
+              
+              if (botMsgIndex !== -1) {
+                console.log('Found message to update at index:', botMsgIndex);
+                messagesArray[botMsgIndex] = {
+                  ...messagesArray[botMsgIndex],
+                  content: fullResponse || 'No content received from model.',
+                  isLoading: false,
+                  avatar: patternflyAvatar,
+                  timestamp: date.toLocaleString(),
+                  actions: {
+                    positive: { onClick: () => console.log('Good response') },
+                    negative: { onClick: () => console.log('Bad response') },
+                    copy: { onClick: () => console.log('Copy') },
+                    share: { onClick: () => console.log('Share') },
+                    listen: { onClick: () => console.log('Listen') },
+                  }
+                };
+              } else {
+                console.warn('Could not find message with ID', botMessageId, 'adding a new one');
+                messagesArray.push({
+                  id: botMessageId,
+                  role: 'bot',
+                  content: fullResponse || 'No content received from model.',
+                  name: 'Bot',
+                  isLoading: false,
+                  avatar: patternflyAvatar,
+                  timestamp: date.toLocaleString(),
+                  actions: {
+                    positive: { onClick: () => console.log('Good response') },
+                    negative: { onClick: () => console.log('Bad response') },
+                    copy: { onClick: () => console.log('Copy') },
+                    share: { onClick: () => console.log('Share') },
+                    listen: { onClick: () => console.log('Listen') },
+                  }
+                });
+              }
+              return messagesArray;
+            });
+            
+            setAnnouncement(`Message from Bot has finished loading.`);
+            setIsSendButtonDisabled(false);
+          })
+          .catch(error => {
+            console.error('Error streaming from Llama Stack API:', error);
+            handleStreamingError(error, botMessageId, newMessages, date);
+          });
+      } catch (error) {
+        console.error('Error in streaming setup:', error);
+        handleStreamingError(error, botMessageId, newMessages, date);
+      }
+    } else {
+      // Non-streaming implementation
+      llamaClient.inference.chatCompletion(chatRequest)
+        .then(response => {
+          // Update the bot message with the API response
+          const loadedMessages = [...newMessages].filter(msg => msg !== undefined);
+          const botMessageIndex = loadedMessages.findIndex((msg) => msg && msg.id === botMessageId);
 
-        setMessages(loadedMessages);
-        // make announcement to assistive devices that new message has loaded
-        setAnnouncement(`Message from Bot: ${data.choices[0].message.content}`);
-        setIsSendButtonDisabled(false);
-      })
-      .catch((error) => {
-        console.error('Error calling API:', error);
-
-        // Update the bot message with an error message
-        const loadedMessages = [...newMessages];
-        const botMessageIndex = loadedMessages.findIndex((msg) => msg.id === botMessageId);
-
-        if (botMessageIndex !== -1) {
-          loadedMessages[botMessageIndex] = {
-            id: botMessageId,
-            role: 'bot',
-            content: `Sorry, I encountered an error: ${error.message}. Please try again later.`,
-            name: 'Bot',
-            isLoading: false,
-            avatar: patternflyAvatar,
-            timestamp: date.toLocaleString(),
-            actions: {
-              positive: { onClick: () => console.log('Good response') },
-              negative: { onClick: () => console.log('Bad response') },
-              copy: { onClick: () => console.log('Copy') },
-              share: { onClick: () => console.log('Share') },
-              listen: { onClick: () => console.log('Listen') },
-            },
-          };
-        }
-
-        setMessages(loadedMessages);
-        setAnnouncement(`Error from Bot: ${error.message}`);
-        setIsSendButtonDisabled(false);
-      });
+          if (botMessageIndex !== -1 && loadedMessages[botMessageIndex]) {
+            loadedMessages[botMessageIndex] = {
+              id: botMessageId,
+              role: 'bot',
+              content: response.choices[0].message.content,
+              name: 'Bot',
+              isLoading: false,
+              avatar: patternflyAvatar,
+              timestamp: date.toLocaleString(),
+              actions: {
+                positive: { onClick: () => console.log('Good response') },
+                negative: { onClick: () => console.log('Bad response') },
+                copy: { onClick: () => console.log('Copy') },
+                share: { onClick: () => console.log('Share') },
+                listen: { onClick: () => console.log('Listen') },
+              },
+            };
+            setMessages([...loadedMessages]);
+            // make announcement to assistive devices that new message has loaded
+            setAnnouncement(`Message from Bot: ${response.choices[0].message.content}`);
+          } else {
+            console.warn('Could not find message with ID', botMessageId, 'in loadedMessages');
+          }
+          setIsSendButtonDisabled(false);
+        })
+        .catch(error => {
+          console.error('Error calling Llama Stack API:', error);
+          handleStreamingError(error, botMessageId, newMessages, date);
+        });
+    }
   };
+  
+  // Helper function to handle errors in both streaming and non-streaming modes
+  const handleStreamingError = (error, botMessageId, messages, date) => {
+    console.error('Error in streaming response:', error);
+    
+    // Update the message with error information
+    setMessages(prevMessages => {
+      // Try to find the message we were updating
+      const updatedMessages = [...prevMessages];
+      const botMessageIndex = updatedMessages.findIndex(msg => msg.id === botMessageId);
+      
+      if (botMessageIndex !== -1) {
+        // Update the existing message with error info
+        updatedMessages[botMessageIndex] = {
+          ...updatedMessages[botMessageIndex],
+          content: "Sorry, I encountered an error while responding.",
+          isLoading: false
+        };
+      } else {
+        // Add a new message if we can't find the one we were updating
+        updatedMessages.push({
+          id: botMessageId || generateId(),
+          role: 'bot',
+          content: "Sorry, I encountered an error while responding.",
+          name: 'Bot',
+          isLoading: false,
+          avatar: patternflyAvatar,
+          timestamp: date.toLocaleString()
+        });
+      }
+      
+      return updatedMessages;
+    });
+  };
+  
   const findMatchingItems = targetValue => {
     let filteredConversations = Object.entries(initialConversations).reduce((acc, [key, items]) => {
       const filteredItems = items.filter(item => item.text.toLowerCase().includes(targetValue.toLowerCase()));
@@ -375,13 +494,29 @@ export const EmbeddedChatbot = () => {
                     
                   </ChatbotHeaderMain>
                   <ChatbotHeaderActions>
+                    <div style={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
+                      <span style={{ marginRight: '8px', fontSize: '14px' }}>Streaming:</span>
+                      <label className="pf-c-switch">
+                        <input 
+                          className="pf-c-switch__input" 
+                          type="checkbox" 
+                          id="streaming-toggle"
+                          checked={useStreaming}
+                          onChange={() => setUseStreaming(!useStreaming)}
+                          aria-label="Toggle streaming responses" 
+                        />
+                        <span className="pf-c-switch__toggle">
+                          <span className="pf-c-switch__toggle-icon"></span>
+                        </span>
+                      </label>
+                    </div>
                     <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
                       <DropdownList>
-                        <DropdownItem value="Granite 7B" key="granite">
-                          Granite 7B
-                        </DropdownItem>
                         <DropdownItem value="Llama 3.0" key="llama">
                           Llama 3.0
+                        </DropdownItem>
+                        <DropdownItem value="Granite 7B" key="granite">
+                          Granite 7B
                         </DropdownItem>
                         <DropdownItem value="Mistral 3B" key="mistral">
                           Mistral 3B
@@ -395,7 +530,12 @@ export const EmbeddedChatbot = () => {
                   <MessageBox announcement={announcement}>
                     <ChatbotWelcomePrompt title="Hello, Chatbot User" description="How may I help you today?" prompts={welcomePrompts} />
                    
-                    {messages.map((message, index) => {
+                    {messages.filter(message => message !== undefined).map((message, index) => {
+                      if (!message || !message.id) {
+                        console.warn('Skipping invalid message object', message);
+                        return null;
+                      }
+                      
                       if (index === messages.length - 1) {
                         return <>
                                     <div ref={scrollToBottomRef}></div>

@@ -24,4 +24,14 @@ export default defineConfig({
     },
   },
   base: '/',
+  server: {
+    proxy: {
+      // Proxy all requests to the Llama Stack API
+      '/api/llama-stack': {
+        target: 'http://localhost:8321',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/llama-stack/, ''),
+      },
+    },
+  },
 })
